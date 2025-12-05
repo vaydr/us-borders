@@ -1,204 +1,221 @@
 """
-Flask web application for real-time US border redistricting visualization.
+Ultra-optimized Flask app that visualizes my_sim.py
 """
-
 from flask import Flask, render_template, jsonify
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 import threading
-import time
+import geopandas as gpd
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
+import io
+import base64
 import numpy as np
 
-from data_loader import DataLoader
-from simple_algorithm import SimpleRedistrictingAlgorithm
-from realtime_visualizer import RealtimeVisualizer
+# Import my_sim WITHOUT touching it
+import my_sim
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'us-borders-secret-key'
+app.config['SECRET_KEY'] = 'secret'
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# Global state
-data_loader = None
-counties_data = None
-neighbors = None
-visualizer = None
-ga_thread = None
+# Global data
+counties_gdf = None
 is_running = False
 
+# Pre-computed optimization data
+geoid_to_geom = {}
+geoid_to_idx = {}
+geoid_set = set()
+border_cache = {}  # (geoid1, geoid2) -> LineString
+cmap = None
 
-def initialize_data():
-    """Load data on startup."""
-    global data_loader, counties_data, neighbors, visualizer
 
-    print("Loading data...")
-    data_loader = DataLoader()
-    counties_data = data_loader.load_county_data()
+def load_and_precompute():
+    """Load counties and pre-compute all expensive operations."""
+    global counties_gdf, geoid_to_geom, geoid_to_idx, geoid_set, border_cache, cmap
 
-    # FORCE REGENERATE political lean data with new N(X, abs(X)+1) distribution
-    if True:  # Always regenerate for testing
-        print("Generating synthetic political data with state-based variation...")
-        import numpy as np
-        np.random.seed(42)
+    print("Loading counties...")
+    counties_gdf = gpd.read_file('data/counties.geojson')
+    print(f"Loaded {len(counties_gdf)} counties")
 
-        # Generate base lean X ~ Uniform(-20, 20) for each state (R to D)
-        # Then sample each county from N(X, abs(X)+1)
-        if 'STATEFP' in counties_data.columns:
-            state_base_leans = {}
-            for state in counties_data['STATEFP'].unique():
-                state_base_leans[state] = np.random.uniform(-20, 20)
+    # Build lookup dicts
+    print("Building lookup tables...")
+    for idx, row in counties_gdf.iterrows():
+        geoid = row['GEOID']
+        geoid_to_geom[geoid] = row['geometry']
+        geoid_to_idx[geoid] = idx
+        geoid_set.add(geoid)
 
-            # For each county, sample from N(X, abs(X)+1) where X is the state's base lean
-            political_leans = []
-            for idx in counties_data.index:
-                state = counties_data.loc[idx, 'STATEFP']
-                X = state_base_leans[state]
-                sigma = abs(X) + 1
-                county_lean = np.random.normal(X, sigma)
-                political_leans.append(county_lean)
+    # Pre-compute ALL county borders
+    print("Pre-computing county borders...")
+    processed_pairs = set()
 
-            counties_data['political_lean'] = political_leans
-            print(f"Generated political leans: state base leans range from {min(state_base_leans.values()):.2f} to {max(state_base_leans.values()):.2f}")
+    for geoid in my_sim.county_to_neighbors:
+        if geoid not in geoid_set:
+            continue
 
-            # DIAGNOSTIC: Show sample of leans to verify variation
-            import pandas as pd
-            sample_states = list(state_base_leans.keys())[:3]
-            for state_fp in sample_states:
-                state_counties = counties_data[counties_data['STATEFP'] == state_fp]
-                state_leans = state_counties['political_lean'].values
-                print(f"  State {state_fp}: base={state_base_leans[state_fp]:.2f}, counties range [{state_leans.min():.2f}, {state_leans.max():.2f}], mean={state_leans.mean():.2f}, std={state_leans.std():.2f}")
+        geom1 = geoid_to_geom[geoid]
+
+        for neighbor_geoid in my_sim.county_to_neighbors[geoid]:
+            if neighbor_geoid not in geoid_set:
+                continue
+
+            # Avoid computing same border twice
+            pair = tuple(sorted([geoid, neighbor_geoid]))
+            if pair in processed_pairs:
+                continue
+            processed_pairs.add(pair)
+
+            # Compute shared border once
+            geom2 = geoid_to_geom[neighbor_geoid]
+            shared = geom1.intersection(geom2)
+
+            if not shared.is_empty and shared.geom_type == 'LineString':
+                border_cache[pair] = shared
+
+    print(f"Pre-computed {len(border_cache)} county borders")
+
+    # Create colormap
+    cmap = LinearSegmentedColormap.from_list(
+        'partisan',
+        ['#0015BC', '#6B6BFF', '#FFFFFF', '#FF6B6B', '#BC0000'],
+        N=100
+    )
+
+
+def make_map():
+    """Generate map using pre-computed data."""
+    print(f"[RENDER] Starting render")
+    print(f"[RENDER] Border cache size: {len(border_cache)}")
+
+    fig, ax = plt.subplots(figsize=(14, 9), dpi=80)
+
+    # Build color array
+    colors = []
+    for geoid in counties_gdf['GEOID']:
+        if geoid in my_sim.county_to_partisan_lean:
+            lean = my_sim.county_to_partisan_lean[geoid]
+            normalized = (lean + 20.0) / 40.0
+            colors.append(cmap(normalized))
         else:
-            # Fallback if no state data
-            counties_data['political_lean'] = np.random.randn(len(counties_data)) * 0.3
+            colors.append((0.8, 0.8, 0.8, 1.0))
 
-    if 'POP' not in counties_data.columns:
-        counties_data['POP'] = 100000
+    # Plot counties with THIN borders
+    counties_gdf.plot(ax=ax, color=colors, edgecolor='#AAAAAA', linewidth=0.1)
 
-    neighbors = data_loader.compute_county_neighbors(counties_data)
-    visualizer = RealtimeVisualizer(counties_data, neighbors)  # Pass neighbors dict!
+    # Draw state borders THICK and DARK
+    state_borders_drawn = 0
+    total_borders_checked = 0
 
-    print(f"Loaded {len(counties_data)} counties")
+    for pair, linestring in border_cache.items():
+        geoid1, geoid2 = pair
+        state1 = my_sim.county_to_state.get(geoid1)
+        state2 = my_sim.county_to_state.get(geoid2)
+        total_borders_checked += 1
+
+        if state1 != state2:
+            state_borders_drawn += 1
+            if state_borders_drawn <= 5:  # Log first 5
+                print(f"[RENDER] Drawing state border: {geoid1} ({state1}) <-> {geoid2} ({state2})")
+            x, y = linestring.xy
+            ax.plot(x, y, color='#FF0000', linewidth=10.0, solid_capstyle='round', zorder=100)
+
+    print(f"[RENDER] Checked {total_borders_checked} borders, drew {state_borders_drawn} state borders")
+
+    ax.set_aspect('equal')
+    ax.axis('off')
+    plt.tight_layout(pad=0)
+
+    # Faster PNG encoding
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight', dpi=80, facecolor='white', pad_inches=0.1)
+    plt.close(fig)
+    buf.seek(0)
+
+    return base64.b64encode(buf.read()).decode('utf-8')
 
 
 @app.route('/')
 def index():
-    """Serve the main page."""
     return render_template('index.html')
 
 
 @app.route('/api/initial-map')
-def get_initial_map():
-    """Get the initial state borders map."""
-    if visualizer is None:
-        return jsonify({'error': 'Data not loaded'}), 500
+def initial_map():
+    """Get initial map."""
+    print(f"[INITIAL] Rendering initial map")
+    print(f"[INITIAL] Border cache size: {len(border_cache)}")
+    print(f"[INITIAL] my_sim.county_to_state size: {len(my_sim.county_to_state)}")
 
-    img_base64 = visualizer.generate_initial_frame()
-    return jsonify({'image': img_base64})
+    # Sample to verify states are assigned
+    sample = list(my_sim.county_to_state.items())[:5]
+    print(f"[INITIAL] Sample state assignments: {sample}")
+
+    img = make_map()
+    return jsonify({'image': img})
 
 
 @socketio.on('connect')
-def handle_connect():
-    """Handle client connection."""
+def on_connect():
     print('Client connected')
-    emit('status', {'message': 'Connected to server'})
+    emit('status', {'message': 'Connected'})
 
 
 @socketio.on('disconnect')
-def handle_disconnect():
-    """Handle client disconnection."""
+def on_disconnect():
     print('Client disconnected')
 
 
 @socketio.on('start_algorithm')
-def handle_start_algorithm(data):
-    """Start the genetic algorithm with specified parameters."""
-    global ga_thread, is_running
+def start_algorithm(data):
+    """Run simulation."""
+    global is_running
 
     if is_running:
-        emit('error', {'message': 'Algorithm already running'})
+        emit('error', {'message': 'Already running'})
         return
 
-    # Get parameters from client
-    iterations = data.get('generations', 500)  # Use 'generations' param as iterations
+    iterations = data.get('generations', 500)
+    print(f"Starting {iterations} iterations")
 
-    print(f"Starting simple iterative algorithm: {iterations} iterations")
-
-    # Run algorithm in background thread
-    def run_algorithm():
+    def run():
         global is_running
         is_running = True
 
+        # Render every Nth iteration for speed
+        render_every = max(1, iterations // 200)  # Cap at ~200 frames max
+        print(f"Rendering every {render_every} iterations")
+
         try:
-            # Create simple algorithm instance
-            algo = SimpleRedistrictingAlgorithm(
-                counties_data=counties_data,
-                neighbors=neighbors,
-                num_states=50
-            )
-
-            iteration_count = [0]
-
-            # Define callback for updates
-            def update_callback(iteration, solution):
-                global is_running
-                import time
-
-                # Stop if requested
+            for i in range(iterations):
                 if not is_running:
-                    return False  # Signal to stop
+                    break
 
-                try:
-                    callback_start = time.time()
-                    iteration_count[0] = iteration
+                # ONE county changes per iteration
+                my_sim.iteration()
 
-                    # Update EVERY iteration for smooth animation
-                    # Calculate fitness for display (just for stats)
-                    stats_start = time.time()
-                    state_pops, state_leans = algo.get_state_stats()
-                    pop_variance = np.var(state_pops)
-                    fitness = -pop_variance / 1e9  # Negative variance (higher is better)
-                    stats_time = time.time() - stats_start
+                # Only render every Nth iteration
+                if (i + 1) % render_every == 0 or (i + 1) == iterations:
+                    img = make_map()
 
-                    # Generate visualization
-                    viz_start = time.time()
-                    img_base64 = visualizer.generate_frame(solution, iteration, fitness)
-                    viz_time = time.time() - viz_start
-
-                    # Send update to client
-                    emit_start = time.time()
                     socketio.emit('generation_update', {
-                        'generation': iteration,
-                        'fitness': float(fitness),
+                        'generation': i + 1,
+                        'fitness': 0,
                         'total_generations': iterations,
-                        'image': img_base64
+                        'image': img
                     })
-                    emit_time = time.time() - emit_start
 
-                    callback_time = time.time() - callback_start
-
-                    # Log timing every 10 iterations
-                    if iteration % 10 == 0:
-                        print(f"Iter {iteration}: callback={callback_time:.3f}s (stats={stats_time:.3f}s, viz={viz_time:.3f}s, emit={emit_time:.3f}s)")
-
-                    return True  # Continue
-
-                except Exception as e:
-                    print(f"Error in callback: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    return False  # Stop on error
-
-            # Run algorithm with callback
-            algo.run(iterations, callback=update_callback)
-
-            # Send completion
             socketio.emit('algorithm_complete', {
-                'final_fitness': 0.0,
+                'final_fitness': 0,
                 'generations': iterations
             })
 
         except Exception as e:
-            print(f"Error running algorithm: {e}")
+            print(f"Error: {e}")
             import traceback
             traceback.print_exc()
             socketio.emit('error', {'message': str(e)})
@@ -206,34 +223,39 @@ def handle_start_algorithm(data):
         finally:
             is_running = False
 
-    ga_thread = threading.Thread(target=run_algorithm)
-    ga_thread.daemon = True
-    ga_thread.start()
+    thread = threading.Thread(target=run)
+    thread.daemon = True
+    thread.start()
 
-    emit('algorithm_started', {
-        'iterations': iterations
-    })
+    emit('algorithm_started', {'iterations': iterations})
 
 
 @socketio.on('stop_algorithm')
-def handle_stop_algorithm():
-    """Stop the currently running algorithm."""
+def stop_algorithm():
     global is_running
     is_running = False
-    emit('algorithm_stopped', {'message': 'Algorithm stopped'})
+    emit('algorithm_stopped', {'message': 'Stopped'})
 
 
 if __name__ == '__main__':
-    # Initialize data on startup
-    initialize_data()
+    print("="*60)
+    print("Initializing...")
+    print("="*60)
 
-    # Run Flask app
-    print("\n" + "=" * 60)
-    print("US Border Redistricting - Web Interface")
-    print("=" * 60)
-    print("\nServer starting on http://localhost:5000")
-    print("Open your browser and navigate to http://localhost:5000")
-    print("\nPress Ctrl+C to stop the server")
-    print("=" * 60 + "\n")
+    # Initialize my_sim
+    my_sim.compute_state_to_bordering_counties()
+    my_sim.generate_initial_partisan_lean()
+    print(f"Initialized: {len(my_sim.state_to_counties)} states, {len(my_sim.county_to_state)} counties")
+
+    # Debug: Check if states are actually assigned
+    sample_states = list(my_sim.county_to_state.items())[:10]
+    print(f"[DEBUG] Sample county->state mappings: {sample_states}")
+
+    # Load and pre-compute everything
+    load_and_precompute()
+
+    print("="*60)
+    print("Server starting on http://localhost:5000")
+    print("="*60)
 
     socketio.run(app, debug=True, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)

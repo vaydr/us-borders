@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>US Border Redistricting - Live Visualization</title>
+    <title>US Border Redistricting Simulation</title>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <style>
         * {
@@ -13,48 +13,46 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
             min-height: 100vh;
             padding: 20px;
         }
 
         .container {
-            max-width: 1600px;
+            max-width: 1800px;
             margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
         }
 
         .header {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            padding: 30px;
             text-align: center;
+            padding: 20px;
+            margin-bottom: 30px;
         }
 
         .header h1 {
             font-size: 2.5em;
             margin-bottom: 10px;
+            color: #fff;
         }
 
         .header p {
             font-size: 1.1em;
-            opacity: 0.9;
+            color: #aaa;
         }
 
-        .main-content {
-            display: flex;
-            min-height: 700px;
+        .main {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
         }
 
         .controls {
-            width: 350px;
-            background: #f8f9fa;
-            padding: 30px;
-            border-right: 1px solid #dee2e6;
+            background: #252542;
+            padding: 25px;
+            border-radius: 10px;
+            height: fit-content;
         }
 
         .control-group {
@@ -65,171 +63,134 @@
             display: block;
             font-weight: 600;
             margin-bottom: 8px;
-            color: #333;
+            color: #fff;
         }
 
         .control-group input[type="range"],
         .control-group input[type="number"] {
             width: 100%;
             padding: 8px;
-            border: 2px solid #dee2e6;
+            background: #1a1a2e;
+            border: 1px solid #444;
             border-radius: 5px;
-            font-size: 14px;
-        }
-
-        .control-group input[type="range"] {
-            padding: 0;
+            color: #fff;
         }
 
         .range-value {
             text-align: right;
-            color: #666;
+            color: #aaa;
             font-size: 14px;
             margin-top: 5px;
         }
 
-        .button-group {
+        .buttons {
             display: flex;
             gap: 10px;
-            margin-top: 30px;
+            margin-bottom: 20px;
         }
 
         button {
             flex: 1;
-            padding: 15px 25px;
+            padding: 15px;
             font-size: 16px;
             font-weight: 600;
             border: none;
-            border-radius: 8px;
+            border-radius: 5px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            transition: all 0.2s;
         }
 
         #startBtn {
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-            color: white;
+            background: #00d4ff;
+            color: #000;
         }
 
         #startBtn:hover:not(:disabled) {
+            background: #00bfea;
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(17, 153, 142, 0.4);
         }
 
         #stopBtn {
-            background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);
-            color: white;
+            background: #ff4757;
+            color: #fff;
         }
 
         #stopBtn:hover:not(:disabled) {
+            background: #ee2e3f;
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(238, 9, 121, 0.4);
         }
 
         button:disabled {
-            opacity: 0.5;
+            opacity: 0.4;
             cursor: not-allowed;
         }
 
-        .status {
-            margin-top: 20px;
+        .status-box {
+            background: #1a1a2e;
             padding: 15px;
-            background: white;
-            border-radius: 8px;
-            border-left: 4px solid #667eea;
+            border-radius: 5px;
+            margin-bottom: 15px;
         }
 
         .status-label {
-            font-weight: 600;
-            color: #333;
+            font-size: 12px;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
             margin-bottom: 5px;
         }
 
         .status-value {
-            color: #666;
-            font-size: 14px;
-        }
-
-        .progress-container {
-            margin-top: 15px;
+            font-size: 16px;
+            color: #fff;
         }
 
         .progress-bar {
             width: 100%;
-            height: 8px;
-            background: #e9ecef;
-            border-radius: 4px;
+            height: 6px;
+            background: #1a1a2e;
+            border-radius: 3px;
             overflow: hidden;
+            margin-top: 8px;
         }
 
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(90deg, #00d4ff, #0088ff);
             width: 0%;
-            transition: width 0.3s ease;
+            transition: width 0.3s;
         }
 
-        .visualization {
-            flex: 1;
+        .viz {
+            background: #252542;
             padding: 30px;
+            border-radius: 10px;
+            min-height: 700px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background: #ffffff;
         }
 
         #mapImage {
             max-width: 100%;
             height: auto;
-            border-radius: 10px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-        }
-
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-top: 20px;
-            width: 100%;
-        }
-
-        .stat-card {
-            background: #f8f9fa;
-            padding: 15px;
             border-radius: 8px;
-            text-align: center;
-        }
-
-        .stat-label {
-            font-size: 12px;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 5px;
-        }
-
-        .stat-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: #333;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
         }
 
         .loading {
             text-align: center;
-            padding: 40px;
-            color: #666;
         }
 
         .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
+            border: 4px solid #333;
+            border-top: 4px solid #00d4ff;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
             animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
+            margin: 0 auto 20px;
         }
 
         @keyframes spin {
@@ -237,80 +198,103 @@
             100% { transform: rotate(360deg); }
         }
 
-        .info-panel {
-            background: #e7f3ff;
-            border-left: 4px solid #2196F3;
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .stat {
+            background: #1a1a2e;
             padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 4px;
+            border-radius: 5px;
+            text-align: center;
         }
 
-        .info-panel p {
+        .stat-label {
+            font-size: 12px;
+            color: #aaa;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #00d4ff;
+        }
+
+        .info {
+            background: #1a1a2e;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 3px solid #00d4ff;
+        }
+
+        .info p {
             margin: 5px 0;
-            color: #333;
+            color: #aaa;
             font-size: 14px;
-            line-height: 1.5;
-        }
-
-        .info-panel strong {
-            color: #1976D2;
+            line-height: 1.6;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🗺️ US Border Redistricting</h1>
-            <p>Watch state borders evolve in real-time using genetic algorithms</p>
+            <h1>US Border Redistricting</h1>
+            <p>Watch state borders evolve as counties change hands</p>
         </div>
 
-        <div class="main-content">
+        <div class="main">
             <div class="controls">
-                <div class="info-panel">
+                <div class="info">
                     <p><strong>How it works:</strong></p>
-                    <p>Adjust parameters and hit Play to watch the algorithm redraw state borders to maximize political homogeneity while balancing populations.</p>
+                    <p>Each iteration, one state randomly absorbs an adjacent county from a neighboring state. Counties have individual partisan leans.</p>
                 </div>
 
                 <div class="control-group">
-                    <label for="iterations">Iterations</label>
+                    <label>Iterations</label>
                     <input type="range" id="iterations" min="100" max="2000" value="500" step="100">
-                    <div class="range-value">Value: <span id="iterationsValue">500</span></div>
-                    <p style="font-size: 12px; color: #666; margin-top: 5px;">Each iteration = one county changes hands</p>
+                    <div class="range-value"><span id="iterationsValue">500</span> iterations</div>
                 </div>
 
-                <div class="button-group">
-                    <button id="startBtn">▶ Play</button>
-                    <button id="stopBtn" disabled>⏹ Stop</button>
+                <div class="buttons">
+                    <button id="startBtn">Play</button>
+                    <button id="stopBtn" disabled>Stop</button>
                 </div>
 
-                <div class="status">
+                <div class="status-box">
                     <div class="status-label">Status</div>
                     <div class="status-value" id="statusText">Ready</div>
                 </div>
 
-                <div class="progress-container">
+                <div class="status-box">
+                    <div class="status-label">Progress</div>
+                    <div class="status-value" id="progressText">0 / 0</div>
                     <div class="progress-bar">
                         <div class="progress-fill" id="progressBar"></div>
                     </div>
-                    <div class="status-value" id="progressText">0 / 0 generations</div>
                 </div>
-
             </div>
 
-            <div class="visualization">
+            <div class="viz">
                 <div id="loadingState" class="loading">
                     <div class="spinner"></div>
-                    <p>Loading initial map...</p>
+                    <p>Loading map...</p>
                 </div>
                 <img id="mapImage" style="display: none;" />
-                <div class="stats" id="statsPanel" style="display: none; grid-template-columns: repeat(2, 1fr);">
-                    <div class="stat-card">
+                <div class="stats" id="stats" style="display: none;">
+                    <div class="stat">
                         <div class="stat-label">Iteration</div>
-                        <div class="stat-value" id="currentGen">0</div>
+                        <div class="stat-value" id="iteration">0</div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat">
                         <div class="stat-label">Progress</div>
-                        <div class="stat-value" id="progressPercent">0%</div>
+                        <div class="stat-value" id="percent">0%</div>
                     </div>
                 </div>
             </div>
@@ -320,7 +304,6 @@
     <script>
         const socket = io();
 
-        // UI elements
         const startBtn = document.getElementById('startBtn');
         const stopBtn = document.getElementById('stopBtn');
         const mapImage = document.getElementById('mapImage');
@@ -328,46 +311,39 @@
         const statusText = document.getElementById('statusText');
         const progressBar = document.getElementById('progressBar');
         const progressText = document.getElementById('progressText');
-        const statsPanel = document.getElementById('statsPanel');
-        const currentGen = document.getElementById('currentGen');
-        const progressPercent = document.getElementById('progressPercent');
-
-        // Parameter controls
+        const stats = document.getElementById('stats');
+        const iteration = document.getElementById('iteration');
+        const percent = document.getElementById('percent');
         const iterationsInput = document.getElementById('iterations');
 
-        // Update value displays
         iterationsInput.oninput = () => {
             document.getElementById('iterationsValue').textContent = iterationsInput.value;
         };
 
         // Load initial map
         fetch('/api/initial-map')
-            .then(response => response.json())
+            .then(res => res.json())
             .then(data => {
                 mapImage.src = 'data:image/png;base64,' + data.image;
                 mapImage.style.display = 'block';
                 loadingState.style.display = 'none';
-                statusText.textContent = 'Ready to start';
+                statusText.textContent = 'Ready';
             })
-            .catch(error => {
-                console.error('Error loading initial map:', error);
+            .catch(err => {
+                console.error('Error:', err);
                 loadingState.innerHTML = '<p>Error loading map</p>';
             });
 
-        // Start button
         startBtn.onclick = () => {
-            const params = {
-                generations: parseInt(iterationsInput.value)  // Using 'generations' key for backend compatibility
-            };
-
-            socket.emit('start_algorithm', params);
+            socket.emit('start_algorithm', {
+                generations: parseInt(iterationsInput.value)
+            });
             startBtn.disabled = true;
             stopBtn.disabled = false;
-            statusText.textContent = 'Running...';
-            statsPanel.style.display = 'grid';
+            statusText.textContent = 'Running';
+            stats.style.display = 'grid';
         };
 
-        // Stop button
         stopBtn.onclick = () => {
             socket.emit('stop_algorithm');
             startBtn.disabled = false;
@@ -375,42 +351,31 @@
             statusText.textContent = 'Stopped';
         };
 
-        // Socket events
         socket.on('algorithm_started', (data) => {
-            console.log('Algorithm started:', data);
-            progressText.textContent = `0 / ${data.iterations} iterations`;
+            progressText.textContent = `0 / ${data.iterations}`;
         });
 
         socket.on('generation_update', (data) => {
-            // Update map
             mapImage.src = 'data:image/png;base64,' + data.image;
 
-            // Update progress
-            const progress = (data.generation / data.total_generations) * 100;
-            progressBar.style.width = progress + '%';
-            progressText.textContent = `${data.generation} / ${data.total_generations} generations`;
+            const prog = (data.generation / data.total_generations) * 100;
+            progressBar.style.width = prog + '%';
+            progressText.textContent = `${data.generation} / ${data.total_generations}`;
 
-            // Update stats
-            currentGen.textContent = data.generation;
-            progressPercent.textContent = Math.round(progress) + '%';
+            iteration.textContent = data.generation;
+            percent.textContent = Math.round(prog) + '%';
         });
 
-        socket.on('algorithm_complete', (data) => {
-            console.log('Algorithm complete:', data);
-            statusText.textContent = 'Complete!';
+        socket.on('algorithm_complete', () => {
+            statusText.textContent = 'Complete';
             startBtn.disabled = false;
             stopBtn.disabled = true;
         });
 
         socket.on('error', (data) => {
-            console.error('Error:', data);
             statusText.textContent = 'Error: ' + data.message;
             startBtn.disabled = false;
             stopBtn.disabled = true;
-        });
-
-        socket.on('status', (data) => {
-            console.log('Status:', data.message);
         });
     </script>
 </body>
