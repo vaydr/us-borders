@@ -44,9 +44,29 @@ class SimpleRedistrictingAlgorithm:
         """Start with actual US state borders."""
         if 'STATEFP' in self.counties.columns:
             original_states = self.counties['STATEFP'].values
-            unique_states = sorted(set(original_states))[:self.num_states]
+            unique_states = sorted(set(original_states))
+
+            print(f"\n=== INITIALIZATION DEBUG ===")
+            print(f"Found {len(unique_states)} unique state FIPS codes: {unique_states}")
+            print(f"Need exactly {self.num_states} states")
+
+            if len(unique_states) > self.num_states:
+                print(f"WARNING: More than {self.num_states} states found! Taking first {self.num_states}")
+                unique_states = unique_states[:self.num_states]
+
             state_mapping = {old: new for new, old in enumerate(unique_states)}
             solution = np.array([state_mapping.get(s, 0) for s in original_states])
+
+            # Verify no states got mapped to 0 incorrectly
+            unmapped = set(original_states) - set(unique_states)
+            if unmapped:
+                print(f"ERROR: These state codes were NOT mapped and defaulted to state 0: {unmapped}")
+                for state_code in unmapped:
+                    num_counties = np.sum(original_states == state_code)
+                    print(f"  State {state_code}: {num_counties} counties assigned to state 0!")
+
+            print(f"Initial solution has {len(np.unique(solution))} unique states")
+            print(f"=== END DEBUG ===\n")
 
             # Ensure exactly 50 states
             while len(np.unique(solution)) < self.num_states:

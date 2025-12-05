@@ -1,0 +1,124 @@
+import numpy as np
+import time
+import matplotlib.pyplot as plt
+county_to_neighbors = {}
+county_to_state = {}
+state_to_counties = {}
+state_to_bordering_counties = {}
+county_to_partisan_lean = {}
+def compute_state_to_bordering_counties():
+    global state_to_bordering_counties
+    state_to_bordering_counties = {}
+    for state, counties in state_to_counties.items():
+        for county in counties:
+            if county in county_to_neighbors:
+                for neighbor in county_to_neighbors[county]:
+                    neighbor_state = county_to_state[neighbor]
+                    if state != neighbor_state:
+                        state_to_bordering_counties.setdefault(state, set()).add(neighbor)
+
+for line in open('data/county_adjacency.txt'):
+    #lines look like: County Name County, AB|69420|Other County, CD|69696|67676
+    county_name_state, county_id, adjacent_county_name_state, adjacent_county_id, _ = line.split('|')
+    
+    state = county_name_state.split(', ')[1]
+    if state in ['AK', 'HI']: # skip Alaska and Hawaii as they are not part of the contiguous US
+        continue
+    adjacent_state = adjacent_county_name_state.split(', ')[1]
+
+    state_to_counties.setdefault(state, set()).add(county_id)
+    county_to_neighbors.setdefault(county_id, set()).add(adjacent_county_id)
+    county_to_state[county_id] = state
+
+#TODO weighted sampling of states
+def sample_state():
+    return np.random.choice(list(state_to_counties.keys()))
+
+#TODO weighted sampling of adjacent counties
+def sample_adjacent_county(state):
+    return np.random.choice(list(state_to_bordering_counties[state]))
+def iteration():
+    state_to_grow = sample_state()
+
+    #state eats a random adjacent county
+    pivot_county = sample_adjacent_county(state_to_grow)
+    state_to_shrink = county_to_state[pivot_county]
+    #remove the adjacent county from the old state and add it to the sampled state
+    state_to_counties[state_to_grow].add(pivot_county)
+    state_to_counties[state_to_shrink].remove(pivot_county)
+    county_to_state[pivot_county] = state_to_grow
+    #recompute the state to bordering counties
+    compute_state_to_bordering_counties()
+
+NUM_ITERATIONS = 100
+def generate_initial_partisan_lean():
+    #generate a random partisan lean for each county
+    global county_to_partisan_lean
+    county_to_partisan_lean = {}
+    for _, counties in state_to_counties.items():
+        state_lean = np.random.uniform(-20, 20)
+        for county in counties:
+            county_to_partisan_lean[county] = np.random.normal(state_lean, np.abs(state_lean)+1)
+def main():
+
+    time_start = time.time()
+    compute_state_to_bordering_counties()
+    print(f"Time taken to compute state to bordering counties: {time.time() - time_start} seconds")
+    generate_initial_partisan_lean()
+    print(f"Time taken to generate initial partisan lean: {time.time() - time_start} seconds")
+    # Track average partisan lean and county count for each state over iterations
+    state_names = list(state_to_counties.keys())
+    partisan_lean_history = {state: [] for state in state_names}
+    county_count_history = {state: [] for state in state_names}
+    
+    # Record initial values
+    for state in state_names:
+        counties = state_to_counties[state]
+        county_count_history[state].append(len(counties))
+        if counties:
+            avg_lean = sum(county_to_partisan_lean[county] for county in counties) / len(counties)
+        else:
+            avg_lean = 0
+        partisan_lean_history[state].append(avg_lean)
+    
+    # Run simulation and record values after each iteration
+    for _ in range(NUM_ITERATIONS):
+        iteration()
+        for state in state_names:
+            counties = state_to_counties[state]
+            county_count_history[state].append(len(counties))
+            if counties:
+                avg_lean = sum(county_to_partisan_lean[county] for county in counties) / len(counties)
+            else:
+                avg_lean = 0
+            partisan_lean_history[state].append(avg_lean)
+    
+    # Create the plots
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 12))
+    iterations = range(NUM_ITERATIONS + 1)  # +1 to include initial state
+    
+    # Plot 1: Number of counties per state
+    for state in state_names:
+        ax1.plot(iterations, county_count_history[state], label=state, alpha=0.7)
+    
+    ax1.set_xlabel('Iteration')
+    ax1.set_ylabel('Number of Counties')
+    ax1.set_title('Number of Counties per State Over Iterations')
+    ax1.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    ax1.grid(True, alpha=0.3)
+    
+    # Plot 2: Average partisan lean per state
+    for state in state_names:
+        ax2.plot(iterations, partisan_lean_history[state], label=state, alpha=0.7)
+    
+    ax2.set_xlabel('Iteration')
+    ax2.set_ylabel('Average Partisan Lean')
+    ax2.set_title('Average Partisan Lean per State Over Iterations')
+    ax2.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    ax2.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+
+if __name__ == "__main__":
+    main()
