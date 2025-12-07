@@ -20,6 +20,10 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 # Global data
 is_running = False
 
+# Saved initial state for reset
+initial_county_to_state = {}
+initial_state_to_counties = {}
+
 # 49 maximally distinguishable colors
 PALETTE = [
     "#c5003a", "#01d97a", "#c00a9d", "#66d248", "#7d4fd6",
@@ -149,6 +153,25 @@ def stop_algorithm():
     emit('algorithm_stopped', {'message': 'Stopped'})
 
 
+@socketio.on('reset_algorithm')
+def reset_algorithm():
+    global is_running
+    is_running = False
+
+    # Restore initial state from saved copies
+    my_sim.county_to_state.clear()
+    my_sim.county_to_state.update(initial_county_to_state)
+
+    my_sim.state_to_counties.clear()
+    for state, counties in initial_state_to_counties.items():
+        my_sim.state_to_counties[state] = set(counties)
+
+    my_sim.compute_state_to_bordering_counties()
+
+    print("Algorithm reset to initial state")
+    emit('reset_complete', {'colors': get_county_colors()})
+
+
 if __name__ == '__main__':
     print("="*60)
     print("Initializing...")
@@ -158,6 +181,12 @@ if __name__ == '__main__':
     my_sim.compute_state_to_bordering_counties()
     my_sim.generate_initial_partisan_lean()
     print(f"Initialized: {len(my_sim.state_to_counties)} states, {len(my_sim.county_to_state)} counties")
+
+    # Save initial state for reset functionality
+    initial_county_to_state.update(my_sim.county_to_state)
+    for state, counties in my_sim.state_to_counties.items():
+        initial_state_to_counties[state] = set(counties)
+    print("Saved initial state for reset")
 
     # Generate initial state colors
     generate_state_colors()

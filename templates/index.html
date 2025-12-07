@@ -57,6 +57,8 @@
         #startBtn:hover:not(:disabled) { background: #00bfea; transform: translateY(-2px); }
         #stopBtn { background: #ff4757; color: #fff; }
         #stopBtn:hover:not(:disabled) { background: #ee2e3f; transform: translateY(-2px); }
+        #resetBtn { background: #ffa500; color: #000; }
+        #resetBtn:hover:not(:disabled) { background: #e69500; transform: translateY(-2px); }
         button:disabled { opacity: 0.4; cursor: not-allowed; }
         .status-box {
             background: #1a1a2e;
@@ -167,6 +169,7 @@
                 <div class="buttons">
                     <button id="startBtn">Play</button>
                     <button id="stopBtn" disabled>Stop</button>
+                    <button id="resetBtn">Reset</button>
                 </div>
 
                 <div class="status-box">
@@ -538,6 +541,24 @@
             stopBtn.disabled = true;
             statusText.textContent = 'Stopped';
         };
+
+        const resetBtn = document.getElementById('resetBtn');
+        resetBtn.onclick = () => {
+            socket.emit('reset_algorithm');
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            statusText.textContent = 'Resetting...';
+        };
+
+        socket.on('reset_complete', (data) => {
+            countyColors = data.colors;
+            render();
+            progressBar.style.width = '0%';
+            progressText.textContent = '0 / 0';
+            iterationEl.textContent = '0';
+            percentEl.textContent = '0%';
+            statusText.textContent = 'Ready';
+        });
 
         // Start
         init();
