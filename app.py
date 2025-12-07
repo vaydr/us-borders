@@ -9,10 +9,9 @@ import geopandas as gpd
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap
+import colorsys
 import io
 import base64
-import numpy as np
 
 # Import my_sim WITHOUT touching it
 import my_sim
@@ -30,19 +29,29 @@ is_running = False
 geoid_to_geom = {}
 geoid_to_idx = {}
 geoid_set = set()
-border_cache = {}  # (geoid1, geoid2) -> LineString
-cmap = None
+state_colors = {}  # state_id -> RGBA tuple
+
+
+def generate_state_colors():
+    """Generate visually distinct colors for each state using HSV color space."""
+    global state_colors
+    states = sorted(my_sim.state_to_counties.keys())
+    for i, state in enumerate(states):
+        hue = (i * 0.618033988749895) % 1.0
+        saturation = 0.55 + (i % 4) * 0.1
+        value = 0.80 + (i % 3) * 0.07
+        r, g, b = colorsys.hsv_to_rgb(hue, saturation, value)
+        state_colors[state] = (r, g, b, 1.0)
 
 
 def load_and_precompute():
-    """Load counties and pre-compute all expensive operations."""
-    global counties_gdf, geoid_to_geom, geoid_to_idx, geoid_set, border_cache, cmap
+    """Load counties and build lookup tables."""
+    global counties_gdf, geoid_to_geom, geoid_to_idx, geoid_set
 
     print("Loading counties...")
     counties_gdf = gpd.read_file('data/counties.geojson')
     print(f"Loaded {len(counties_gdf)} counties")
 
-    # Build lookup dicts
     print("Building lookup tables...")
     for idx, row in counties_gdf.iterrows():
         geoid = row['GEOID']
@@ -50,87 +59,31 @@ def load_and_precompute():
         geoid_to_idx[geoid] = idx
         geoid_set.add(geoid)
 
-    # Pre-compute ALL county borders
-    print("Pre-computing county borders...")
-    processed_pairs = set()
-
-    for geoid in my_sim.county_to_neighbors:
-        if geoid not in geoid_set:
-            continue
-
-        geom1 = geoid_to_geom[geoid]
-
-        for neighbor_geoid in my_sim.county_to_neighbors[geoid]:
-            if neighbor_geoid not in geoid_set:
-                continue
-
-            # Avoid computing same border twice
-            pair = tuple(sorted([geoid, neighbor_geoid]))
-            if pair in processed_pairs:
-                continue
-            processed_pairs.add(pair)
-
-            # Compute shared border once
-            geom2 = geoid_to_geom[neighbor_geoid]
-            shared = geom1.intersection(geom2)
-
-            if not shared.is_empty and shared.geom_type == 'LineString':
-                border_cache[pair] = shared
-
-    print(f"Pre-computed {len(border_cache)} county borders")
-
-    # Create colormap
-    cmap = LinearSegmentedColormap.from_list(
-        'partisan',
-        ['#0015BC', '#6B6BFF', '#FFFFFF', '#FF6B6B', '#BC0000'],
-        N=100
-    )
+    generate_state_colors()
+    print(f"Generated colors for {len(state_colors)} states")
 
 
 def make_map():
-    """Generate map using pre-computed data."""
+    """Generate map using state-based coloring."""
     print(f"[RENDER] Starting render")
-    print(f"[RENDER] Border cache size: {len(border_cache)}")
 
     fig, ax = plt.subplots(figsize=(14, 9), dpi=80)
 
-    # Build color array
+    # Build color array based on state assignment
     colors = []
     for geoid in counties_gdf['GEOID']:
-        if geoid in my_sim.county_to_partisan_lean:
-            lean = my_sim.county_to_partisan_lean[geoid]
-            normalized = (lean + 20.0) / 40.0
-            colors.append(cmap(normalized))
+        state = my_sim.county_to_state.get(geoid)
+        if state and state in state_colors:
+            colors.append(state_colors[state])
         else:
             colors.append((0.8, 0.8, 0.8, 1.0))
 
-    # Plot counties with THIN borders
-    counties_gdf.plot(ax=ax, color=colors, edgecolor='#AAAAAA', linewidth=0.1)
-
-    # Draw state borders THICK and DARK
-    state_borders_drawn = 0
-    total_borders_checked = 0
-
-    for pair, linestring in border_cache.items():
-        geoid1, geoid2 = pair
-        state1 = my_sim.county_to_state.get(geoid1)
-        state2 = my_sim.county_to_state.get(geoid2)
-        total_borders_checked += 1
-
-        if state1 != state2:
-            state_borders_drawn += 1
-            if state_borders_drawn <= 5:  # Log first 5
-                print(f"[RENDER] Drawing state border: {geoid1} ({state1}) <-> {geoid2} ({state2})")
-            x, y = linestring.xy
-            ax.plot(x, y, color='#FF0000', linewidth=10.0, solid_capstyle='round', zorder=100)
-
-    print(f"[RENDER] Checked {total_borders_checked} borders, drew {state_borders_drawn} state borders")
+    counties_gdf.plot(ax=ax, color=colors, edgecolor='#333333', linewidth=0.15)
 
     ax.set_aspect('equal')
     ax.axis('off')
     plt.tight_layout(pad=0)
 
-    # Faster PNG encoding
     buf = io.BytesIO()
     plt.savefig(buf, format='png', bbox_inches='tight', dpi=80, facecolor='white', pad_inches=0.1)
     plt.close(fig)
@@ -148,7 +101,7 @@ def index():
 def initial_map():
     """Get initial map."""
     print(f"[INITIAL] Rendering initial map")
-    print(f"[INITIAL] Border cache size: {len(border_cache)}")
+    print(f"[INITIAL] State colors: {len(state_colors)}")
     print(f"[INITIAL] my_sim.county_to_state size: {len(my_sim.county_to_state)}")
 
     # Sample to verify states are assigned
@@ -179,7 +132,7 @@ def start_algorithm(data):
         emit('error', {'message': 'Already running'})
         return
 
-    iterations = data.get('generations', 500)
+    iterations = data.get('generations', 25000)
     print(f"Starting {iterations} iterations")
 
     def run():
@@ -187,7 +140,7 @@ def start_algorithm(data):
         is_running = True
 
         # Render every Nth iteration for speed
-        render_every = max(1, iterations // 200)  # Cap at ~200 frames max
+        render_every = 500  # Cap at ~200 frames max
         print(f"Rendering every {render_every} iterations")
 
         try:
