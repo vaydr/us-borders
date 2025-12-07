@@ -1,17 +1,13 @@
 """
 Ultra-optimized Flask app that visualizes my_sim.py
+Client-side rendering - server only sends color mappings
 """
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, send_file
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 import threading
-import geopandas as gpd
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import colorsys
-import io
-import base64
+import time
+import json
 
 # Import my_sim WITHOUT touching it
 import my_sim
@@ -22,74 +18,40 @@ CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Global data
-counties_gdf = None
 is_running = False
 
-# Pre-computed optimization data
-geoid_to_geom = {}
-geoid_to_idx = {}
-geoid_set = set()
-state_colors = {}  # state_id -> RGBA tuple
+# 49 maximally distinguishable colors
+PALETTE = [
+    "#c5003a", "#01d97a", "#c00a9d", "#66d248", "#7d4fd6",
+    "#b1e03b", "#2c50d5", "#b1c300", "#a936bc", "#ccff6c",
+    "#d979ff", "#f5ca1e", "#0054c4", "#ffdd59", "#418cff",
+    "#fffb81", "#7638a4", "#86ffa8", "#ff2f90", "#1d7200",
+    "#f78dff", "#587a00", "#b990ff", "#ad8500", "#007dda",
+    "#ff9e35", "#69509a", "#b1ffb4", "#bd0067", "#00eedd",
+    "#f72a58", "#01b887", "#ff7bcb", "#417833", "#e29eff",
+    "#cd8100", "#816fbd", "#f76926", "#a390e1", "#9e4900",
+    "#922c7d", "#7a9746", "#ac1621", "#e1c571", "#9c2c4a",
+    "#ff9f63", "#e47799", "#b17d3a", "#973725",
+]
+
+# state_id -> palette index (fixed at startup)
+state_color_idx = {}
 
 
 def generate_state_colors():
-    """Generate visually distinct colors for each state using HSV color space."""
-    global state_colors
-    states = sorted(my_sim.state_to_counties.keys())
+    """Assign each state a unique color index."""
+    global state_color_idx
+    state_color_idx = {}
+
+    states = sorted([str(s) for s in my_sim.state_to_counties.keys()])
     for i, state in enumerate(states):
-        hue = (i * 0.618033988749895) % 1.0
-        saturation = 0.55 + (i % 4) * 0.1
-        value = 0.80 + (i % 3) * 0.07
-        r, g, b = colorsys.hsv_to_rgb(hue, saturation, value)
-        state_colors[state] = (r, g, b, 1.0)
+        state_color_idx[state] = i % len(PALETTE)
 
 
-def load_and_precompute():
-    """Load counties and build lookup tables."""
-    global counties_gdf, geoid_to_geom, geoid_to_idx, geoid_set
-
-    print("Loading counties...")
-    counties_gdf = gpd.read_file('data/counties.geojson')
-    print(f"Loaded {len(counties_gdf)} counties")
-
-    print("Building lookup tables...")
-    for idx, row in counties_gdf.iterrows():
-        geoid = row['GEOID']
-        geoid_to_geom[geoid] = row['geometry']
-        geoid_to_idx[geoid] = idx
-        geoid_set.add(geoid)
-
-    generate_state_colors()
-    print(f"Generated colors for {len(state_colors)} states")
-
-
-def make_map():
-    """Generate map using state-based coloring."""
-    print(f"[RENDER] Starting render")
-
-    fig, ax = plt.subplots(figsize=(14, 9), dpi=80)
-
-    # Build color array based on state assignment
-    colors = []
-    for geoid in counties_gdf['GEOID']:
-        state = my_sim.county_to_state.get(geoid)
-        if state and state in state_colors:
-            colors.append(state_colors[state])
-        else:
-            colors.append((0.8, 0.8, 0.8, 1.0))
-
-    counties_gdf.plot(ax=ax, color=colors, edgecolor='#333333', linewidth=0.15)
-
-    ax.set_aspect('equal')
-    ax.axis('off')
-    plt.tight_layout(pad=0)
-
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png', bbox_inches='tight', dpi=80, facecolor='white', pad_inches=0.1)
-    plt.close(fig)
-    buf.seek(0)
-
-    return base64.b64encode(buf.read()).decode('utf-8')
+def get_county_colors():
+    """Get county_id -> color_index mapping."""
+    return {str(geoid): state_color_idx.get(str(state), 0)
+            for geoid, state in my_sim.county_to_state.items()}
 
 
 @app.route('/')
@@ -97,19 +59,19 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/api/initial-map')
-def initial_map():
-    """Get initial map."""
-    print(f"[INITIAL] Rendering initial map")
-    print(f"[INITIAL] State colors: {len(state_colors)}")
-    print(f"[INITIAL] my_sim.county_to_state size: {len(my_sim.county_to_state)}")
+@app.route('/api/geojson')
+def get_geojson():
+    """Serve the counties GeoJSON file."""
+    return send_file('data/counties.geojson', mimetype='application/json')
 
-    # Sample to verify states are assigned
-    sample = list(my_sim.county_to_state.items())[:5]
-    print(f"[INITIAL] Sample state assignments: {sample}")
 
-    img = make_map()
-    return jsonify({'image': img})
+@app.route('/api/init')
+def init_data():
+    """Get initial state: palette and county colors."""
+    return jsonify({
+        'palette': PALETTE,
+        'colors': get_county_colors()
+    })
 
 
 @socketio.on('connect')
@@ -125,7 +87,7 @@ def on_disconnect():
 
 @socketio.on('start_algorithm')
 def start_algorithm(data):
-    """Run simulation."""
+    """Run simulation - sends only color updates, not images."""
     global is_running
 
     if is_running:
@@ -133,39 +95,30 @@ def start_algorithm(data):
         return
 
     iterations = data.get('generations', 25000)
-    print(f"Starting {iterations} iterations")
+    render_every = data.get('render_every', 50)
+    print(f"Starting {iterations} iterations, updating every {render_every}")
 
     def run():
         global is_running
         is_running = True
-
-        # Render every Nth iteration for speed
-        render_every = 500  # Cap at ~200 frames max
-        print(f"Rendering every {render_every} iterations")
 
         try:
             for i in range(iterations):
                 if not is_running:
                     break
 
-                # ONE county changes per iteration
                 my_sim.iteration()
 
-                # Only render every Nth iteration
+                # Send color update every N iterations
                 if (i + 1) % render_every == 0 or (i + 1) == iterations:
-                    img = make_map()
-
-                    socketio.emit('generation_update', {
+                    # Don't regenerate colors - state colors are fixed at startup
+                    socketio.emit('color_update', {
                         'generation': i + 1,
-                        'fitness': 0,
-                        'total_generations': iterations,
-                        'image': img
+                        'total': iterations,
+                        'colors': get_county_colors()
                     })
 
-            socketio.emit('algorithm_complete', {
-                'final_fitness': 0,
-                'generations': iterations
-            })
+            socketio.emit('algorithm_complete', {'generations': iterations})
 
         except Exception as e:
             print(f"Error: {e}")
@@ -200,12 +153,9 @@ if __name__ == '__main__':
     my_sim.generate_initial_partisan_lean()
     print(f"Initialized: {len(my_sim.state_to_counties)} states, {len(my_sim.county_to_state)} counties")
 
-    # Debug: Check if states are actually assigned
-    sample_states = list(my_sim.county_to_state.items())[:10]
-    print(f"[DEBUG] Sample county->state mappings: {sample_states}")
-
-    # Load and pre-compute everything
-    load_and_precompute()
+    # Generate initial state colors
+    generate_state_colors()
+    print(f"Generated colors for {len(state_color_idx)} states")
 
     print("="*60)
     print("Server starting on http://localhost:5000")

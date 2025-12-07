@@ -46,7 +46,11 @@ def sample_state():
 
 #TODO weighted sampling of adjacent counties
 def sample_adjacent_county(state):
-    return np.random.choice(list(state_to_bordering_counties[state]))
+    def _number_of_adjacent_states(county):
+        return len(set(county_to_state[neighbor] for neighbor in county_to_neighbors[county]))
+    county_logits = np.array([1/(_number_of_adjacent_states(county) ** 2) for county in state_to_bordering_counties[state]])
+    county_weights = np.exp(county_logits) / np.sum(np.exp(county_logits))
+    return np.random.choice(list(state_to_bordering_counties[state]), p=county_weights)
 def iteration():
     state_to_grow = sample_state()
 
