@@ -67,10 +67,16 @@ def get_geojson():
 
 @app.route('/api/init')
 def init_data():
-    """Get initial state: palette and county colors."""
+    """Get initial state: palette, county colors, and neighbor data."""
+    # Build neighbors dict with string keys
+    neighbors = {}
+    for geoid, neighbor_list in my_sim.county_to_neighbors.items():
+        neighbors[str(geoid)] = [str(n) for n in neighbor_list]
+
     return jsonify({
         'palette': PALETTE,
-        'colors': get_county_colors()
+        'colors': get_county_colors(),
+        'neighbors': neighbors
     })
 
 

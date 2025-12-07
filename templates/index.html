@@ -217,6 +217,9 @@
         let palette = [];
         let countyColors = {};
         let countyPaths = {};  // Pre-computed Path2D objects
+        let countyEdges = {};  // geoid -> array of edges [{x1,y1,x2,y2}, ...]
+        let neighbors = {};    // geoid -> [neighbor geoids]
+        let sharedEdges = {};  // "geoid1-geoid2" -> Path2D of shared edge
         let bounds = null;
         let transform = null;
 
@@ -302,13 +305,92 @@
             return [x, y];
         }
 
-        // Pre-compute all county paths
+        // Pre-compute all county paths and edges
         function precomputePaths() {
             countyPaths = {};
+            countyEdges = {};
+
             for (const feature of geojson.features) {
                 const geoid = feature.properties.GEOID;
                 countyPaths[geoid] = buildPath(feature.geometry);
+                countyEdges[geoid] = extractEdges(feature.geometry);
             }
+
+            // Pre-compute shared edges between neighbors
+            precomputeSharedEdges();
+        }
+
+        // Extract all edges from a geometry as line segments
+        function extractEdges(geometry) {
+            const edges = [];
+            const type = geometry.type;
+            const coords = geometry.coordinates;
+
+            if (type === 'Polygon') {
+                extractPolygonEdges(coords, edges);
+            } else if (type === 'MultiPolygon') {
+                for (const poly of coords) {
+                    extractPolygonEdges(poly, edges);
+                }
+            }
+            return edges;
+        }
+
+        function extractPolygonEdges(rings, edges) {
+            for (const ring of rings) {
+                for (let i = 0; i < ring.length - 1; i++) {
+                    const [x1, y1] = project(ring[i][0], ring[i][1]);
+                    const [x2, y2] = project(ring[i + 1][0], ring[i + 1][1]);
+                    // Store edge with normalized key for comparison
+                    edges.push({ x1, y1, x2, y2 });
+                }
+            }
+        }
+
+        // Create a normalized key for an edge (so A->B and B->A match)
+        function edgeKey(x1, y1, x2, y2) {
+            // Round to avoid floating point issues
+            const r = (v) => Math.round(v * 100) / 100;
+            const p1 = `${r(x1)},${r(y1)}`;
+            const p2 = `${r(x2)},${r(y2)}`;
+            return p1 < p2 ? `${p1}-${p2}` : `${p2}-${p1}`;
+        }
+
+        // Pre-compute shared edges between neighboring counties
+        function precomputeSharedEdges() {
+            sharedEdges = {};
+            const processed = new Set();
+
+            for (const geoid of Object.keys(countyEdges)) {
+                const myNeighbors = neighbors[geoid] || [];
+                const myEdgeSet = new Set(countyEdges[geoid].map(e => edgeKey(e.x1, e.y1, e.x2, e.y2)));
+
+                for (const neighborId of myNeighbors) {
+                    const pairKey = geoid < neighborId ? `${geoid}-${neighborId}` : `${neighborId}-${geoid}`;
+                    if (processed.has(pairKey)) continue;
+                    processed.add(pairKey);
+
+                    if (!countyEdges[neighborId]) continue;
+
+                    // Find shared edges
+                    const path = new Path2D();
+                    let hasShared = false;
+
+                    for (const edge of countyEdges[neighborId]) {
+                        const key = edgeKey(edge.x1, edge.y1, edge.x2, edge.y2);
+                        if (myEdgeSet.has(key)) {
+                            path.moveTo(edge.x1, edge.y1);
+                            path.lineTo(edge.x2, edge.y2);
+                            hasShared = true;
+                        }
+                    }
+
+                    if (hasShared) {
+                        sharedEdges[pairKey] = path;
+                    }
+                }
+            }
+            console.log(`Pre-computed ${Object.keys(sharedEdges).length} shared edges`);
         }
 
         // Render the map
@@ -318,7 +400,7 @@
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Draw each county
+            // Pass 1: Fill all counties
             for (const feature of geojson.features) {
                 const geoid = feature.properties.GEOID;
                 const colorIdx = countyColors[geoid];
@@ -327,10 +409,30 @@
 
                 ctx.fillStyle = color;
                 ctx.fill(path);
+            }
 
-                ctx.strokeStyle = '#333333';
-                ctx.lineWidth = 0.5;
-                ctx.stroke(path);
+            // Pass 2: Draw thin county borders
+            ctx.strokeStyle = '#00000022';
+            ctx.lineWidth = 0.25;
+            for (const feature of geojson.features) {
+                const geoid = feature.properties.GEOID;
+                ctx.stroke(countyPaths[geoid]);
+            }
+
+            // Pass 3: Draw thick state borders using pre-computed shared edges
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+
+            for (const [pairKey, path] of Object.entries(sharedEdges)) {
+                const [geoid1, geoid2] = pairKey.split('-');
+                const color1 = countyColors[geoid1];
+                const color2 = countyColors[geoid2];
+
+                // Only draw if counties belong to different states
+                if (color1 !== color2) {
+                    ctx.stroke(path);
+                }
             }
 
             const elapsed = performance.now() - t0;
@@ -350,8 +452,9 @@
                 const initData = await initRes.json();
                 palette = initData.palette;
                 countyColors = initData.colors;
+                neighbors = initData.neighbors;
 
-                console.log(`Loaded ${geojson.features.length} counties, ${palette.length} colors`);
+                console.log(`Loaded ${geojson.features.length} counties, ${palette.length} colors, ${Object.keys(neighbors).length} neighbor entries`);
 
                 // Setup canvas
                 const width = 1200;
