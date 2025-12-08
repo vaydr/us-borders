@@ -86,7 +86,7 @@ def generate_initial_partisan_lean():
 def _is_state_contiguous(state):
     counties = state_to_counties[state]
     if not counties:
-        return True
+        return False
     
     # Start BFS from any county in the state
     start_county = next(iter(counties))
