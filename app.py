@@ -71,16 +71,20 @@ def get_geojson():
 
 @app.route('/api/init')
 def init_data():
-    """Get initial state: palette, county colors, and neighbor data."""
+    """Get initial state: palette, county colors, neighbor data, and partisan lean."""
     # Build neighbors dict with string keys
     neighbors = {}
     for geoid, neighbor_list in my_sim.county_to_neighbors.items():
         neighbors[str(geoid)] = [str(n) for n in neighbor_list]
 
+    # Build partisan lean dict with string keys
+    partisan_lean = {str(geoid): lean for geoid, lean in my_sim.county_to_partisan_lean.items()}
+
     return jsonify({
         'palette': PALETTE,
         'colors': get_county_colors(),
-        'neighbors': neighbors
+        'neighbors': neighbors,
+        'partisanLean': partisan_lean
     })
 
 
@@ -179,7 +183,7 @@ if __name__ == '__main__':
 
     # Initialize my_sim
     my_sim.compute_state_to_bordering_counties()
-    my_sim.generate_initial_partisan_lean()
+    my_sim.generate_initial_partisan_lean(2020)
     print(f"Initialized: {len(my_sim.state_to_counties)} states, {len(my_sim.county_to_state)} counties")
 
     # Save initial state for reset functionality

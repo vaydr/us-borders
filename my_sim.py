@@ -1,3 +1,4 @@
+from sre_parse import State
 import numpy as np
 import time
 import matplotlib.pyplot as plt
@@ -6,6 +7,10 @@ county_to_state = {}
 state_to_counties = {}
 state_to_bordering_counties = {}
 county_to_partisan_lean = {}
+county_to_population = {}
+import csv
+NUM_ITERATIONS = 25000
+YEAR = 2020
 
 for line in open('data/county_adjacency.txt'):
     #lines look like: County Name County, AB|69420|Other County, CD|69696|67676
@@ -32,7 +37,6 @@ def compute_state_to_bordering_counties():
                     if state != neighbor_state:
                         state_to_bordering_counties.setdefault(state, set()).add(neighbor)
 
-#TODO weighted sampling of states
 def sample_state():
     # Compute state ranks based on county count (1 = least counties, 50 = most counties)
     state_county_counts = [(state, len(counties)) for state, counties in state_to_counties.items()]
@@ -73,15 +77,34 @@ def iteration():
         return
     return
 
-NUM_ITERATIONS = 25000
-def generate_initial_partisan_lean():
-    #generate a random partisan lean for each county
+def generate_initial_partisan_lean(year: int | None = None):
+    
     global county_to_partisan_lean
     county_to_partisan_lean = {}
-    for _, counties in state_to_counties.items():
-        state_lean = np.random.uniform(-20, 20)
-        for county in counties:
-            county_to_partisan_lean[county] = np.random.normal(state_lean, np.abs(state_lean)+1)
+    global county_to_population
+    county_to_population = {}
+    if not year:
+        for _, counties in state_to_counties.items():
+            state_lean = np.random.uniform(-20, 20)
+            for county in counties:
+                county_to_partisan_lean[county] = np.random.normal(state_lean, np.abs(state_lean)+1)
+                county_to_population[county] = np.random.randint(1000, 100000)
+        return
+    
+    file = f'data/{year}_US_County_Level_Presidential_Results.csv'
+    with open(file, 'r') as f:
+        reader = csv.reader(f)
+        next(reader)
+        for state,county_fips,county_name,votes_gop,votes_dem,_,_,_,_,_ in reader:
+            if state in ['Alaska', 'Hawaii']:
+                continue
+            votes_gop, votes_dem = int(votes_gop), int(votes_dem)
+            total_votes = votes_gop + votes_dem
+            if county_fips not in county_to_state:
+                raise ValueError(f"County {county_fips} with name {county_name} not found")
+            county_to_partisan_lean[county_fips] = (votes_gop - votes_dem) / total_votes
+            county_to_population[county_fips] = total_votes
+
 
 def _is_state_contiguous(state):
     counties = state_to_counties[state]
@@ -107,7 +130,7 @@ def _is_state_contiguous(state):
 def main():
 
     time_start = time.time()
-    compute_state_to_bordering_counties()
+    compute_state_to_bordering_counties(year = YEAR)
     print(f"Time taken to compute state to bordering counties: {time.time() - time_start} seconds")
     generate_initial_partisan_lean()
     print(f"Time taken to generate initial partisan lean: {time.time() - time_start} seconds")
@@ -121,9 +144,7 @@ def main():
         counties = state_to_counties[state]
         county_count_history[state].append(len(counties))
         if counties:
-            avg_lean = sum(county_to_partisan_lean[county] for county in counties) / len(counties)
-        else:
-            avg_lean = 0
+            avg_lean = sum(county_to_partisan_lean[county] * county_to_population[county] for county in counties) / sum(county_to_population[county] for county in counties)
         partisan_lean_history[state].append(avg_lean)
     
     # Run simulation and record values after each iteration
@@ -133,13 +154,10 @@ def main():
             counties = state_to_counties[state]
             county_count_history[state].append(len(counties))
             if counties:
-                avg_lean = sum(county_to_partisan_lean[county] for county in counties) / len(counties)
+                avg_lean = sum(county_to_partisan_lean[county] * county_to_population[county] for county in counties) / sum(county_to_population[county] for county in counties)
             else:
                 avg_lean = 0
             partisan_lean_history[state].append(avg_lean)
-        if _ % 1000 == 0:
-            print(f"Iteration {_} completed")
-            print(f"Time taken: {time.time() - time_start} seconds")
     
     # Create the plots
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 12))

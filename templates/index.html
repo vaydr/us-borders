@@ -138,6 +138,45 @@
             margin-bottom: 20px;
         }
         .info p { margin: 5px 0; color: #aaa; font-size: 14px; line-height: 1.6; }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .switch .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #00d4ff;
+            transition: 0.3s;
+            border-radius: 26px;
+        }
+        .switch .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+        .switch input:checked + .slider {
+            background: linear-gradient(90deg, #3b82f6, #ef4444);
+        }
+        .switch input:checked + .slider:before {
+            transform: translateX(24px);
+        }
     </style>
 </head>
 <body>
@@ -164,6 +203,18 @@
                     <label>Update Every N Iterations</label>
                     <input type="range" id="renderEvery" min="1" max="500" value="25" step="1">
                     <div class="range-value"><span id="renderEveryValue">25</span></div>
+                </div>
+
+                <div class="control-group">
+                    <label>Color Mode</label>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 14px; color: #aaa;">State</span>
+                        <label class="switch">
+                            <input type="checkbox" id="colorModeToggle">
+                            <span class="slider"></span>
+                        </label>
+                        <span style="font-size: 14px; color: #aaa;">Partisan</span>
+                    </div>
                 </div>
 
                 <div class="buttons">
@@ -223,6 +274,8 @@
         let countyEdges = {};  // geoid -> array of edges [{x1,y1,x2,y2}, ...]
         let neighbors = {};    // geoid -> [neighbor geoids]
         let sharedEdges = {};  // "geoid1-geoid2" -> Path2D of shared edge
+        let partisanLean = {}; // geoid -> partisan lean value (-1 to 1)
+        let colorMode = 'state'; // 'state' or 'partisan'
         let bounds = null;
         let transform = null;
 
@@ -246,6 +299,39 @@
         renderEveryInput.oninput = () => {
             document.getElementById('renderEveryValue').textContent = renderEveryInput.value;
         };
+
+        // Color mode toggle
+        const colorModeToggle = document.getElementById('colorModeToggle');
+        colorModeToggle.onchange = () => {
+            colorMode = colorModeToggle.checked ? 'partisan' : 'state';
+            render();
+        };
+
+        // Convert partisan lean (-1 to 1) to color (blue to red)
+        function leanToColor(lean) {
+            // Clamp lean to -1 to 1 range
+            lean = Math.max(-1, Math.min(1, lean));
+
+            // Use a more perceptually uniform scale
+            // At 0: purple/gray, negative: blue, positive: red
+            if (lean < 0) {
+                // Democrat (blue) - lean is negative
+                // -1 = pure blue, 0 = light purple
+                const t = Math.abs(lean); // 0 to 1
+                const r = Math.round(200 - t * 180);  // 200 -> 20
+                const g = Math.round(200 - t * 180);  // 200 -> 20
+                const b = Math.round(220 + t * 35);   // 220 -> 255
+                return `rgb(${r},${g},${b})`;
+            } else {
+                // Republican (red) - lean is positive
+                // +1 = pure red, 0 = light purple
+                const t = lean; // 0 to 1
+                const r = Math.round(220 + t * 35);   // 220 -> 255
+                const g = Math.round(200 - t * 180);  // 200 -> 20
+                const b = Math.round(200 - t * 180);  // 200 -> 20
+                return `rgb(${r},${g},${b})`;
+            }
+        }
 
         // Compute bounding box of GeoJSON
         function computeBounds(geojson) {
@@ -406,9 +492,16 @@
             // Pass 1: Fill all counties
             for (const feature of geojson.features) {
                 const geoid = feature.properties.GEOID;
-                const colorIdx = countyColors[geoid];
-                const color = palette[colorIdx] || '#cccccc';
                 const path = countyPaths[geoid];
+                let color;
+
+                if (colorMode === 'partisan') {
+                    const lean = partisanLean[geoid];
+                    color = lean !== undefined ? leanToColor(lean) : '#cccccc';
+                } else {
+                    const colorIdx = countyColors[geoid];
+                    color = palette[colorIdx] || '#cccccc';
+                }
 
                 ctx.fillStyle = color;
                 ctx.fill(path);
@@ -456,8 +549,9 @@
                 palette = initData.palette;
                 countyColors = initData.colors;
                 neighbors = initData.neighbors;
+                partisanLean = initData.partisanLean || {};
 
-                console.log(`Loaded ${geojson.features.length} counties, ${palette.length} colors, ${Object.keys(neighbors).length} neighbor entries`);
+                console.log(`Loaded ${geojson.features.length} counties, ${palette.length} colors, ${Object.keys(neighbors).length} neighbor entries, ${Object.keys(partisanLean).length} partisan lean values`);
 
                 // Setup canvas
                 const width = 1200;
