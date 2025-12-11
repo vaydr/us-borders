@@ -433,8 +433,8 @@
             line-height: 1;
             transition: all 0.3s ease;
         }
-        .dash-value.dem { color: #3b82f6; }
-        .dash-value.rep { color: #ef4444; }
+        .dash-value.dem, .mini-stat-value.dem { color: #3b82f6; }
+        .dash-value.rep, .mini-stat-value.rep { color: #ef4444; }
         .dash-value.neutral { color: #a855f7; }
         
         .dash-subtitle {
@@ -443,23 +443,36 @@
             margin-top: 2px;
         }
         
-        /* Sparkline */
-        .sparkline {
+        /* Line chart for stats */
+        .stat-chart {
             height: 30px;
-            display: flex;
-            align-items: flex-end;
-            gap: 2px;
             margin-top: 8px;
+            position: relative;
+            overflow: hidden;
         }
-        .spark-bar {
-            flex: 1;
-            background: linear-gradient(to top, #00d4ff, #0088ff);
-            border-radius: 2px 2px 0 0;
-            min-height: 2px;
-            transition: height 0.2s ease;
-            opacity: 0.7;
+        .stat-chart svg {
+            width: 100%;
+            height: 100%;
         }
-        .spark-bar:last-child { opacity: 1; }
+        .stat-line {
+            fill: none;
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .stat-line.yellow {
+            stroke: #fbbf24;
+            filter: drop-shadow(0 0 3px #fbbf24) drop-shadow(0 0 6px #fbbf24);
+        }
+        .stat-line.purple {
+            stroke: #a855f7;
+            filter: drop-shadow(0 0 3px #a855f7) drop-shadow(0 0 6px #a855f7);
+        }
+        .stat-area {
+            opacity: 0.3;
+        }
+        .stat-area.yellow { fill: url(#yellowGradient); }
+        .stat-area.purple { fill: url(#purpleGradient); }
         
         /* Floating EV Panel (right side) */
         .floating-ev {
@@ -699,7 +712,31 @@
             position: relative;
         }
         #scoreCard .dash-value {
-            mix-blend-mode: difference;
+            mix-blend-mode: normal;
+        }
+
+        /* Score line chart */
+        .score-chart {
+            height: 30px;
+            margin-top: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+        .score-chart svg {
+            width: 100%;
+            height: 100%;
+        }
+        .score-line {
+            fill: none;
+            stroke: #00d4ff;
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            filter: drop-shadow(0 0 3px #00d4ff) drop-shadow(0 0 6px #00d4ff);
+        }
+        .score-area {
+            fill: url(#scoreGradient);
+            opacity: 0.3;
         }
 
         /* Histogram */
@@ -932,7 +969,18 @@
                         <div class="dash-label">Algorithm Score</div>
                         <div class="dash-value" id="currentScore" style="color: #00d4ff;">0.00</div>
                         <div class="dash-subtitle" id="scoreSubtitle">higher is better</div>
-                        <div class="sparkline" id="scoreSparkline"></div>
+                        <div class="score-chart" id="scoreChart">
+                            <svg viewBox="0 0 200 30" preserveAspectRatio="none">
+                                <defs>
+                                    <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" style="stop-color:#00d4ff;stop-opacity:0.5" />
+                                        <stop offset="100%" style="stop-color:#00d4ff;stop-opacity:0" />
+                                    </linearGradient>
+                                </defs>
+                                <path class="score-area" id="scoreArea" d=""></path>
+                                <path class="score-line" id="scoreLine" d=""></path>
+                            </svg>
+                        </div>
                     </div>
                     
                     <!-- Swing States -->
@@ -940,15 +988,45 @@
                         <div class="dash-label">Swing States</div>
                         <div class="dash-value" id="swingStates">0</div>
                         <div class="dash-subtitle">within ±5% lean</div>
-                        <div class="sparkline" id="swingSparkline"></div>
+                        <div class="stat-chart">
+                            <svg viewBox="0 0 200 30" preserveAspectRatio="none">
+                                <defs>
+                                    <linearGradient id="yellowGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" style="stop-color:#fbbf24;stop-opacity:0.5" />
+                                        <stop offset="100%" style="stop-color:#fbbf24;stop-opacity:0" />
+                                    </linearGradient>
+                                </defs>
+                                <path class="stat-area yellow" id="swingArea" d=""></path>
+                                <path class="stat-line yellow" id="swingLine" d=""></path>
+                            </svg>
+                        </div>
                     </div>
-                    
-                    <!-- EV Margin -->
+
+                    <!-- EV Margin / Electoral Efficiency -->
                     <div class="dash-card" id="fairnessCard" style="--accent: #a855f7;">
-                        <div class="dash-label">Electoral Efficiency</div>
-                        <div class="dash-value" id="fairnessScore">0%</div>
-                        <div class="dash-subtitle">EV% minus PopVote%</div>
-                        <div class="sparkline" id="fairnessSparkline"></div>
+                        <div class="dash-label">Electoral Metrics</div>
+                        <div class="mini-stats" style="border: none; padding: 0; margin-bottom: 4px;">
+                            <div class="mini-stat">
+                                <div class="mini-stat-value" id="evMarginPct" style="font-size: 20px;">0%</div>
+                                <div class="mini-stat-label">EV Margin</div>
+                            </div>
+                            <div class="mini-stat">
+                                <div class="mini-stat-value" id="fairnessScore" style="font-size: 20px;">0%</div>
+                                <div class="mini-stat-label">Efficiency</div>
+                            </div>
+                        </div>
+                        <div class="stat-chart">
+                            <svg viewBox="0 0 200 30" preserveAspectRatio="none">
+                                <defs>
+                                    <linearGradient id="purpleGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" style="stop-color:#a855f7;stop-opacity:0.5" />
+                                        <stop offset="100%" style="stop-color:#a855f7;stop-opacity:0" />
+                                    </linearGradient>
+                                </defs>
+                                <path class="stat-area purple" id="fairnessArea" d=""></path>
+                                <path class="stat-line purple" id="fairnessLine" d=""></path>
+                            </svg>
+                        </div>
                     </div>
                     
                     <!-- Partisan Distribution Histogram -->
@@ -1044,23 +1122,29 @@
         // Score stat elements
         const currentScoreEl = document.getElementById('currentScore');
         const scoreSubtitleEl = document.getElementById('scoreSubtitle');
-        const scoreSparkline = document.getElementById('scoreSparkline');
+        const scoreLine = document.getElementById('scoreLine');
+        const scoreArea = document.getElementById('scoreArea');
         // Other dashboard elements
         const swingStatesEl = document.getElementById('swingStates');
         const swingCard = document.getElementById('swingCard');
+        const swingLine = document.getElementById('swingLine');
+        const swingArea = document.getElementById('swingArea');
         const fairnessScoreEl = document.getElementById('fairnessScore');
+        const evMarginPctEl = document.getElementById('evMarginPct');
         const fairnessCard = document.getElementById('fairnessCard');
+        const fairnessLine = document.getElementById('fairnessLine');
+        const fairnessArea = document.getElementById('fairnessArea');
         const partisanHistogram = document.getElementById('partisanHistogram');
-        const swingSparkline = document.getElementById('swingSparkline');
-        const fairnessSparkline = document.getElementById('fairnessSparkline');
         const safeBlueEl = document.getElementById('safeBlue');
         const leanBlueEl = document.getElementById('leanBlue');
         const tossupEl = document.getElementById('tossup');
         const leanRedEl = document.getElementById('leanRed');
         const safeRedEl = document.getElementById('safeRed');
 
-        // Track score
-        let scoreHistory = [];
+        // Track historical data for line charts
+        let scoreHistory = []; // [{iter, score}, ...]
+        let swingHistory = []; // [{iter, value}, ...]
+        let fairnessHistory = []; // [{iter, value}, ...]
         let bestScore = -Infinity;
 
         // Tipping point tracking
@@ -1068,11 +1152,6 @@
         let currentTippingPoint = null;
         let lastTippingPoint = null;
         let isAlgorithmRunning = false;
-        
-        // History for sparklines (last 20 values)
-        const SPARKLINE_LENGTH = 20;
-        let swingHistory = [];
-        let fairnessHistory = [];
 
         // Carousel elements
         const popVoteMarginEl = document.getElementById('popVoteMargin');
@@ -1262,25 +1341,31 @@
             };
         }
 
-        // Update sparkline
-        function updateSparkline(container, history, maxVal) {
-            if (!container) return;
-            const max = maxVal || Math.max(...history, 1);
-            container.innerHTML = history.map(v =>
-                `<div class="spark-bar" style="height: ${Math.max(2, (v / max) * 30)}px"></div>`
-            ).join('');
-        }
+        // Efficient line chart renderer - reuses path strings
+        function renderLineChart(lineEl, areaEl, history, width = 200, height = 30, padding = 2) {
+            if (!lineEl || !areaEl || history.length < 2) return;
 
-        // Update sparkline with party color
-        function updateSparklineColored(container, history, maxVal, winner) {
-            if (!container) return;
-            const max = maxVal || Math.max(...history.map(Math.abs), 1);
-            const color = winner === 'dem' ? 'linear-gradient(to top, #2563eb, #3b82f6)' :
-                          winner === 'rep' ? 'linear-gradient(to top, #dc2626, #ef4444)' :
-                          'linear-gradient(to top, #7c3aed, #a855f7)';
-            container.innerHTML = history.map(v =>
-                `<div class="spark-bar" style="height: ${Math.max(2, (Math.abs(v) / max) * 30)}px; background: ${color};"></div>`
-            ).join('');
+            const values = history.map(d => d.value);
+            const minVal = Math.min(...values);
+            const maxVal = Math.max(...values);
+            const range = maxVal - minVal || 1;
+            const maxIter = history[history.length - 1].iter || history.length;
+
+            // Build path string efficiently
+            let linePath = '';
+            for (let i = 0; i < history.length; i++) {
+                const d = history[i];
+                const x = (d.iter / maxIter) * width;
+                const y = height - padding - ((d.value - minVal) / range) * (height - padding * 2);
+                linePath += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1);
+            }
+
+            lineEl.setAttribute('d', linePath);
+
+            // Area path
+            const lastX = ((history[history.length - 1].iter / maxIter) * width).toFixed(1);
+            const firstX = ((history[0].iter / maxIter) * width).toFixed(1);
+            areaEl.setAttribute('d', linePath + `L${lastX},${height}L${firstX},${height}Z`);
         }
 
         // Update partisan histogram
@@ -1313,30 +1398,39 @@
         // Update entire dashboard
         function updateDashboard() {
             const metrics = calculateDashboardMetrics();
+            const currentIter = scoreHistory.length > 0 ? scoreHistory[scoreHistory.length - 1].iter : swingHistory.length;
 
             // Update swing states
             if (swingStatesEl) swingStatesEl.textContent = metrics.swingCount;
-            swingHistory.push(metrics.swingCount);
-            if (swingHistory.length > SPARKLINE_LENGTH) swingHistory.shift();
-            updateSparklineColored(swingSparkline, swingHistory, 20, metrics.evWinner);
+            swingHistory.push({ iter: currentIter, value: metrics.swingCount });
+            renderLineChart(swingLine, swingArea, swingHistory);
 
             // Pulse effect
-            if (swingCard && swingHistory.length > 1 && swingHistory[swingHistory.length - 1] !== swingHistory[swingHistory.length - 2]) {
+            if (swingCard && swingHistory.length > 1 && swingHistory[swingHistory.length - 1].value !== swingHistory[swingHistory.length - 2].value) {
                 swingCard.classList.add('pulse');
                 setTimeout(() => swingCard.classList.remove('pulse'), 500);
             }
 
-            // Update EV margin (EV% - PopVote%)
+            // Update EV Margin (winner EV% - loser EV%)
+            const totalEV = election.d_ev + election.r_ev;
+            const demEVPct = totalEV > 0 ? (election.d_ev / totalEV) * 100 : 50;
+            const repEVPct = totalEV > 0 ? (election.r_ev / totalEV) * 100 : 50;
+            const evMarginPctValue = Math.abs(demEVPct - repEVPct);
+            if (evMarginPctEl) {
+                evMarginPctEl.textContent = evMarginPctValue.toFixed(1) + '%';
+                evMarginPctEl.style.color = metrics.evWinner === 'dem' ? '#3b82f6' :
+                                             metrics.evWinner === 'rep' ? '#ef4444' : '#a855f7';
+            }
+
+            // Update Electoral Efficiency (EV% - PopVote%)
             if (fairnessScoreEl) {
                 const sign = metrics.evMarginValue >= 0 ? '+' : '';
                 fairnessScoreEl.textContent = sign + metrics.evMarginValue.toFixed(1) + '%';
-                fairnessScoreEl.style.color = metrics.evWinner === 'dem' ? '#3b82f6' : 
+                fairnessScoreEl.style.color = metrics.evWinner === 'dem' ? '#3b82f6' :
                                                metrics.evWinner === 'rep' ? '#ef4444' : '#a855f7';
             }
-            fairnessHistory.push(metrics.evMarginValue);
-            if (fairnessHistory.length > SPARKLINE_LENGTH) fairnessHistory.shift();
-            // Color sparkline by winner
-            updateSparklineColored(fairnessSparkline, fairnessHistory, 30, metrics.evWinner);
+            fairnessHistory.push({ iter: currentIter, value: Math.abs(metrics.evMarginValue) });
+            renderLineChart(fairnessLine, fairnessArea, fairnessHistory);
 
             // Update histogram
             updateHistogram();
@@ -1364,7 +1458,7 @@
                 evCarousel.updateItem('repshare2', pv.repPct.toFixed(1) + '%', '#ef4444');
             }
 
-            // Update score display and sparkline
+            // Update score display and line chart
             if (currentScoreEl) {
                 currentScoreEl.textContent = currentScore.toFixed(2);
                 // Color based on improvement (higher is better)
@@ -1378,10 +1472,10 @@
             if (scoreSubtitleEl) {
                 scoreSubtitleEl.textContent = `best: ${bestScore.toFixed(2)}`;
             }
-            scoreHistory.push(currentScore);
-            if (scoreHistory.length > SPARKLINE_LENGTH) scoreHistory.shift();
-            // Higher scores show as taller bars
-            updateSparkline(scoreSparkline, scoreHistory, Math.max(...scoreHistory, 1));
+
+            // Draw score line chart
+            const scoreChartData = scoreHistory.map(d => ({ iter: d.iter, value: d.score }));
+            renderLineChart(scoreLine, scoreArea, scoreChartData);
         }
 
         // Update vertical EV bar
@@ -2079,6 +2173,10 @@
             }
             if (data.score !== undefined) {
                 currentScore = data.score;
+                // Track score with iteration for chart
+                if (data.generation !== undefined) {
+                    scoreHistory.push({ iter: data.generation, score: currentScore });
+                }
             }
 
             render();
@@ -2152,12 +2250,20 @@
             if (data.stateLeans) stateLeans = data.stateLeans;
             if (data.election) election = data.election;
 
-            // Reset score tracking
+            // Reset all chart histories
             currentScore = 0;
             bestScore = -Infinity;
             scoreHistory = [];
+            swingHistory = [];
+            fairnessHistory = [];
             if (currentScoreEl) currentScoreEl.textContent = '0.00';
             if (scoreSubtitleEl) scoreSubtitleEl.textContent = 'higher is better';
+            if (scoreLine) scoreLine.setAttribute('d', '');
+            if (scoreArea) scoreArea.setAttribute('d', '');
+            if (swingLine) swingLine.setAttribute('d', '');
+            if (swingArea) swingArea.setAttribute('d', '');
+            if (fairnessLine) fairnessLine.setAttribute('d', '');
+            if (fairnessArea) fairnessArea.setAttribute('d', '');
 
             // Reset tipping point tracking
             tippingPointCounts = {};
