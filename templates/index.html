@@ -511,7 +511,7 @@
             color: white;
             text-shadow: 0 2px 4px rgba(0,0,0,0.5);
             box-shadow: 0 2px 15px rgba(239,68,68,0.5);
-            overflow: show;
+            overflow: visible;
         }
         .ev-bar-rep-swing-v {
             background: linear-gradient(180deg, #f87171 0%, #fca5a5 100%);
@@ -524,7 +524,7 @@
             font-size: 14px;
             color: #7f1d1d;
             text-shadow: 0 1px 2px rgba(255,255,255,0.3);
-            overflow: show;
+            overflow: visible;
         }
         .ev-bar-dem-swing-v {
             background: linear-gradient(0deg, #60a5fa 0%, #93c5fd 100%);
@@ -537,7 +537,7 @@
             font-size: 14px;
             color: #1e3a8a;
             text-shadow: 0 1px 2px rgba(255,255,255,0.3);
-            overflow: show;
+            overflow: visible;
         }
         .ev-bar-dem-v {
             background: linear-gradient(0deg, #2563eb 0%, #3b82f6 100%);
@@ -552,7 +552,7 @@
             color: white;
             text-shadow: 0 -2px 4px rgba(0,0,0,0.5);
             box-shadow: 0 -2px 15px rgba(59,130,246,0.5);
-            overflow: show;
+            overflow: visible;
         }
         .ev-270-line {
             position: absolute;
@@ -692,6 +692,14 @@
         @keyframes tipping-flash {
             0% { transform: scale(1.15); }
             100% { transform: scale(1); }
+        }
+
+        /* Algorithm Score - invert on sparkline collision */
+        #scoreCard {
+            position: relative;
+        }
+        #scoreCard .dash-value {
+            mix-blend-mode: difference;
         }
 
         /* Histogram */
@@ -919,12 +927,12 @@
                         <div class="tipping-histogram" id="tippingHistogram"></div>
                     </div>
 
-                    <!-- New Brainrot Stat 2: Moves -->
-                    <div class="dash-card" id="movesCard" style="--accent: #fbbf24;">
-                        <div class="dash-label">Total Moves</div>
-                        <div class="dash-value" id="totalMoves" style="color: #fbbf24;">0</div>
-                        <div class="dash-subtitle">county reassignments</div>
-                        <div class="sparkline" id="movesSparkline"></div>
+                    <!-- Algorithm Score -->
+                    <div class="dash-card" id="scoreCard" style="--accent: #00d4ff;">
+                        <div class="dash-label">Algorithm Score</div>
+                        <div class="dash-value" id="currentScore" style="color: #00d4ff;">0.00</div>
+                        <div class="dash-subtitle" id="scoreSubtitle">higher is better</div>
+                        <div class="sparkline" id="scoreSparkline"></div>
                     </div>
                     
                     <!-- Swing States -->
@@ -1033,9 +1041,10 @@
         const tippingSubtitleEl = document.getElementById('tippingSubtitle');
         const tippingHistogram = document.getElementById('tippingHistogram');
         const tippingCard = document.getElementById('tippingCard');
-        // New brainrot stat elements
-        const totalMovesEl = document.getElementById('totalMoves');
-        const movesSparkline = document.getElementById('movesSparkline');
+        // Score stat elements
+        const currentScoreEl = document.getElementById('currentScore');
+        const scoreSubtitleEl = document.getElementById('scoreSubtitle');
+        const scoreSparkline = document.getElementById('scoreSparkline');
         // Other dashboard elements
         const swingStatesEl = document.getElementById('swingStates');
         const swingCard = document.getElementById('swingCard');
@@ -1050,9 +1059,9 @@
         const leanRedEl = document.getElementById('leanRed');
         const safeRedEl = document.getElementById('safeRed');
 
-        // Track total moves
-        let totalMoves = 0;
-        let movesHistory = [];
+        // Track score
+        let scoreHistory = [];
+        let bestScore = -Infinity;
 
         // Tipping point tracking
         let tippingPointCounts = {};  // state -> count of times as tipping point
@@ -1355,10 +1364,24 @@
                 evCarousel.updateItem('repshare2', pv.repPct.toFixed(1) + '%', '#ef4444');
             }
 
-            // Update moves sparkline
-            movesHistory.push(totalMoves);
-            if (movesHistory.length > SPARKLINE_LENGTH) movesHistory.shift();
-            updateSparklineColored(movesSparkline, movesHistory, Math.max(...movesHistory, 100), metrics.evWinner);
+            // Update score display and sparkline
+            if (currentScoreEl) {
+                currentScoreEl.textContent = currentScore.toFixed(2);
+                // Color based on improvement (higher is better)
+                if (currentScore > bestScore) {
+                    bestScore = currentScore;
+                    currentScoreEl.style.color = '#22c55e'; // green for new best
+                } else {
+                    currentScoreEl.style.color = '#00d4ff'; // cyan default
+                }
+            }
+            if (scoreSubtitleEl) {
+                scoreSubtitleEl.textContent = `best: ${bestScore.toFixed(2)}`;
+            }
+            scoreHistory.push(currentScore);
+            if (scoreHistory.length > SPARKLINE_LENGTH) scoreHistory.shift();
+            // Higher scores show as taller bars
+            updateSparkline(scoreSparkline, scoreHistory, Math.max(...scoreHistory, 1));
         }
 
         // Update vertical EV bar
@@ -2058,14 +2081,6 @@
                 currentScore = data.score;
             }
 
-            // Track total moves (estimate based on generation)
-            if (data.moves !== undefined) {
-                totalMoves = data.moves;
-            } else if (data.generation) {
-                totalMoves = data.generation;
-            }
-            if (totalMovesEl) totalMovesEl.textContent = totalMoves.toLocaleString();
-
             render();
 
             // Update brainrot dashboard
@@ -2137,10 +2152,12 @@
             if (data.stateLeans) stateLeans = data.stateLeans;
             if (data.election) election = data.election;
 
-            // Reset tracking
-            totalMoves = 0;
-            movesHistory = [];
-            if (totalMovesEl) totalMovesEl.textContent = '0';
+            // Reset score tracking
+            currentScore = 0;
+            bestScore = -Infinity;
+            scoreHistory = [];
+            if (currentScoreEl) currentScoreEl.textContent = '0.00';
+            if (scoreSubtitleEl) scoreSubtitleEl.textContent = 'higher is better';
 
             // Reset tipping point tracking
             tippingPointCounts = {};
