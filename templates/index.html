@@ -20,73 +20,163 @@
         .header p { font-size: 1.1em; color: #aaa; }
         .main { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
         .controls {
-            background: #252542;
-            padding: 25px;
-            border-radius: 10px;
+            background: linear-gradient(180deg, #252542 0%, #1a1a2e 100%);
+            padding: 20px;
+            border-radius: 12px;
             height: fit-content;
+            border: 1px solid #333;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         }
-        .control-group { margin-bottom: 25px; }
+
+        .control-group { margin-bottom: 18px; }
         .control-group label {
             display: block;
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: #fff;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: #888;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
         }
-        .control-group input[type="range"],
-        .control-group input[type="number"] {
+        .control-group input[type="number"],
+        .control-group select {
             width: 100%;
-            padding: 8px;
-            background: #1a1a2e;
+            padding: 12px 14px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #252542 100%);
             border: 1px solid #444;
-            border-radius: 5px;
+            border-radius: 8px;
             color: #fff;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            outline: none;
         }
-        .range-value { text-align: right; color: #aaa; font-size: 14px; margin-top: 5px; }
-        .buttons { display: flex; gap: 10px; margin-bottom: 20px; }
+        .control-group input[type="number"]:focus,
+        .control-group select:focus {
+            border-color: #00d4ff;
+            box-shadow: 0 0 15px rgba(0,212,255,0.2);
+        }
+        .control-group input[type="number"]:hover,
+        .control-group select:hover {
+            border-color: #555;
+        }
+        .control-group select option {
+            background: #1a1a2e;
+            padding: 10px;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 18px;
+        }
         button {
             flex: 1;
-            padding: 15px;
-            font-size: 16px;
-            font-weight: 600;
+            padding: 14px 10px;
+            font-size: 13px;
+            font-weight: 700;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: all 0.2s;
-        }
-        #startBtn { background: #00d4ff; color: #000; }
-        #startBtn:hover:not(:disabled) { background: #00bfea; transform: translateY(-2px); }
-        #stopBtn { background: #ff4757; color: #fff; }
-        #stopBtn:hover:not(:disabled) { background: #ee2e3f; transform: translateY(-2px); }
-        #resetBtn { background: #ffa500; color: #000; }
-        #resetBtn:hover:not(:disabled) { background: #e69500; transform: translateY(-2px); }
-        button:disabled { opacity: 0.4; cursor: not-allowed; }
-        .status-box {
-            background: #1a1a2e;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-        }
-        .status-label {
-            font-size: 12px;
-            color: #aaa;
+            transition: all 0.2s ease;
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-bottom: 5px;
-        }
-        .status-value { font-size: 16px; color: #fff; }
-        .progress-bar {
-            width: 100%;
-            height: 6px;
-            background: #1a1a2e;
-            border-radius: 3px;
+            position: relative;
             overflow: hidden;
-            margin-top: 8px;
         }
-        .progress-fill {
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, #00d4ff, #0088ff);
-            width: 0%;
-            transition: width 0.1s;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+        button:hover::before {
+            left: 100%;
+        }
+        #startBtn {
+            background: linear-gradient(135deg, #00d4ff 0%, #0088ff 100%);
+            color: #000;
+            box-shadow: 0 4px 15px rgba(0,212,255,0.3);
+        }
+        #startBtn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,212,255,0.4);
+        }
+        #stopBtn {
+            background: linear-gradient(135deg, #ff4757 0%, #ff2d3a 100%);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(255,71,87,0.3);
+        }
+        #stopBtn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255,71,87,0.4);
+        }
+        #resetBtn {
+            background: linear-gradient(135deg, #ffa500 0%, #ff8c00 100%);
+            color: #000;
+            box-shadow: 0 4px 15px rgba(255,165,0,0.3);
+        }
+        #resetBtn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255,165,0,0.4);
+        }
+        button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .status-box {
+            background: linear-gradient(135deg, #1a1a2e 0%, #252542 100%);
+            padding: 14px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border: 1px solid #333;
+            position: relative;
+            overflow: hidden;
+        }
+        .status-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #00d4ff, #a855f7, #00d4ff);
+            background-size: 200% 100%;
+            animation: shimmer 2s linear infinite;
+        }
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        .status-label {
+            font-size: 9px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 4px;
+        }
+        .status-value {
+            font-size: 15px;
+            color: #00d4ff;
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+        }
+        .status-value.running {
+            animation: pulse-text 1s ease-in-out infinite;
+        }
+        @keyframes pulse-text {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
         }
         .viz {
             background: #252542;
@@ -310,47 +400,6 @@
             color: #555;
             text-transform: uppercase;
         }
-        .info {
-            background: #1a1a2e;
-            padding: 15px;
-            border-radius: 5px;
-            border-left: 3px solid #00d4ff;
-            margin-bottom: 20px;
-        }
-        .info p { margin: 5px 0; color: #aaa; font-size: 14px; line-height: 1.6; }
-        .election-results {
-            width: 100%;
-            margin-top: 15px;
-            background: #1a1a2e;
-            padding: 15px;
-            border-radius: 5px;
-        }
-        .ev-bar {
-            display: flex;
-            height: 30px;
-            border-radius: 5px;
-            overflow: hidden;
-            background: #333;
-        }
-        .ev-dem {
-            background: linear-gradient(90deg, #2563eb, #3b82f6);
-            height: 100%;
-            transition: width 0.3s ease;
-        }
-        .ev-rep {
-            background: linear-gradient(90deg, #dc2626, #ef4444);
-            height: 100%;
-            transition: width 0.3s ease;
-        }
-        .ev-labels {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 8px;
-            font-size: 14px;
-            font-weight: 600;
-        }
-        .ev-dem-label { color: #3b82f6; }
-        .ev-rep-label { color: #ef4444; }
         .winner-dem { color: #3b82f6 !important; }
         .winner-rep { color: #ef4444 !important; }
         .winner-tie { color: #a855f7 !important; }
@@ -405,37 +454,37 @@
 
                 <div class="control-group">
                     <label>Iterations</label>
-                    <input type="number" id="iterations" min="100" max="150000" value="5000" step="100" style="width: 100%; padding: 10px; background: #1a1a2e; border: 1px solid #444; border-radius: 5px; color: #fff; font-size: 14px;">
+                    <input type="number" id="iterations" min="100" max="150000" value="5000" step="100">
                 </div>
 
                 <div class="control-group">
-                    <label>Update Every N Iterations</label>
-                    <input type="number" id="renderEvery" min="1" max="500" value="25" step="1" style="width: 100%; padding: 10px; background: #1a1a2e; border: 1px solid #444; border-radius: 5px; color: #fff; font-size: 14px;">
+                    <label>Update Frequency</label>
+                    <input type="number" id="renderEvery" min="1" max="500" value="25" step="1">
                 </div>
 
                 <div class="control-group">
                     <label>Color Mode</label>
-                    <select id="colorModeSelect" style="width: 100%; padding: 10px; background: #1a1a2e; border: 1px solid #444; border-radius: 5px; color: #fff; font-size: 14px;">
-                        <option value="county-partisan">County Partisan Lean</option>
-                        <option value="state-partisan">State Avg Partisan Lean</option>
-                        <option value="state">Unique State Colors</option>
+                    <select id="colorModeSelect">
+                        <option value="county-partisan">County Partisan</option>
+                        <option value="state-partisan">State Partisan</option>
+                        <option value="state">State Colors</option>
                     </select>
                 </div>
 
                 <div class="control-group">
-                    <label>Optimization Target</label>
-                    <select id="targetSelect" style="width: 100%; padding: 10px; background: #1a1a2e; border: 1px solid #444; border-radius: 5px; color: #fff; font-size: 14px;">
-                        <option value="Republican">Republican Win</option>
-                        <option value="Democratic">Democratic Win</option>
-                        <option value="Tie">Tie</option>
+                    <label>Target</label>
+                    <select id="targetSelect">
+                        <option value="Republican">GOP Victory</option>
+                        <option value="Democratic">DEM Victory</option>
+                        <option value="Tie">Electoral Tie</option>
                     </select>
                 </div>
 
                 <div class="control-group">
-                    <label>Algorithm Mode</label>
-                    <select id="modeSelect" style="width: 100%; padding: 10px; background: #1a1a2e; border: 1px solid #444; border-radius: 5px; color: #fff; font-size: 14px;">
-                        <option value="standard">Standard (Random)</option>
-                        <option value="follow_the_leader">Follow the Leader</option>
+                    <label>Algorithm</label>
+                    <select id="modeSelect">
+                        <option value="standard">Standard</option>
+                        <option value="follow_the_leader">Follow Leader</option>
                         <option value="bfs">BFS</option>
                         <option value="dfs">DFS</option>
                     </select>
@@ -450,14 +499,6 @@
                 <div class="status-box">
                     <div class="status-label">Status</div>
                     <div class="status-value" id="statusText">Loading...</div>
-                </div>
-
-                <div class="status-box">
-                    <div class="status-label">Progress</div>
-                    <div class="status-value" id="progressText">0 / 0</div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progressBar"></div>
-                    </div>
                 </div>
             </div>
 
@@ -582,8 +623,6 @@
         const stopBtn = document.getElementById('stopBtn');
         const loadingState = document.getElementById('loadingState');
         const statusText = document.getElementById('statusText');
-        const progressBar = document.getElementById('progressBar');
-        const progressText = document.getElementById('progressText');
         // Dashboard elements
         const iterationEl = document.getElementById('iteration');
         const iterOverlay = document.getElementById('iterOverlay');
@@ -1277,14 +1316,10 @@
                 updateTooltipContent(hoveredState);
             }
 
-            const prog = (data.generation / data.total) * 100;
-            progressBar.style.width = prog + '%';
-            progressText.textContent = `${data.generation} / ${data.total}`;
             if (iterationEl) iterationEl.textContent = data.generation.toLocaleString();
         });
 
         socket.on('algorithm_started', (data) => {
-            progressText.textContent = `0 / ${data.iterations}`;
         });
 
         socket.on('algorithm_complete', () => {
@@ -1338,8 +1373,6 @@
             }
             if (data.stateLeans) stateLeans = data.stateLeans;
             render();
-            progressBar.style.width = '0%';
-            progressText.textContent = '0 / 0';
             iterationEl.textContent = '0';
             statusText.textContent = 'Ready';
         });
