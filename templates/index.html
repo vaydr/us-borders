@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Geom:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -34,7 +35,7 @@
         /* Floating controls panel */
         .floating-controls {
             position: absolute;
-            top: -10px;
+            top: 10px;
             left: -320px;
             z-index: 100;
             display: flex;
@@ -64,9 +65,10 @@
             text-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
         }
         .iter-box .iter-value {
-            font-size: 26px;
+            font-size: 24px;
             color: #00d4ff;
             font-weight: 700;
+            line-height: 1;
             text-shadow:
                 0 0 10px rgba(0, 212, 255, 0.8),
                 0 0 20px rgba(0, 212, 255, 0.4);
@@ -98,7 +100,7 @@
             background: rgba(0, 0, 0, 0.4);
             border: 1px solid rgba(168, 85, 247, 0.4);
             border-radius: 5px;
-            color: #fff;
+            color: #a855f7;
             font-size: 13px;
             font-weight: 600;
             font-family: "Geom", sans-serif;
@@ -110,68 +112,123 @@
             box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
         }
 
-        /* Glowy dropdowns */
-        .glow-select {
+        /* K-way toggle selector */
+        .kway-select {
             background: rgba(10, 10, 20, 0.85);
             backdrop-filter: blur(10px);
             padding: 8px 10px;
             border-radius: 8px;
-            border: 1px solid rgba(251, 191, 36, 0.3);
-            box-shadow:
-                0 0 15px rgba(251, 191, 36, 0.1),
-                inset 0 1px 0 rgba(255,255,255,0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
         }
-        .glow-select label {
+        .kway-select .kway-label {
             display: block;
             font-size: 7px;
-            color: #fbbf24;
+            color: #888;
             text-transform: uppercase;
             letter-spacing: 1.5px;
-            margin-bottom: 4px;
-            text-shadow: 0 0 6px rgba(251, 191, 36, 0.5);
+            margin-bottom: 6px;
+            text-align: center;
         }
-        .glow-select select {
-            width: 100%;
-            padding: 6px 8px;
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(251, 191, 36, 0.4);
+        .kway-select .kway-options {
+            display: flex;
+            gap: 4px;
+            justify-content: center;
+        }
+        .kway-select .kway-option {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 4px;
             border-radius: 5px;
-            color: #fff;
-            font-size: 11px;
-            font-weight: 600;
-            font-family: "Geom", sans-serif;
-            outline: none;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.25s ease;
+            position: relative;
         }
-        .glow-select select:focus {
-            border-color: #fbbf24;
-            box-shadow: 0 0 15px rgba(251, 191, 36, 0.4);
+        .kway-select .kway-option:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
         }
-        .glow-select select option {
-            background: #1a1a2e;
+        .kway-select .kway-option.active {
+            background: var(--kway-color, #00d4ff);
+            border-color: var(--kway-color, #00d4ff);
+            box-shadow: 0 0 12px var(--kway-color, #00d4ff);
+        }
+        .kway-select .kway-option.active .kway-icon {
+            color: #000;
+        }
+        .kway-select .kway-icon {
+            width: 16px;
+            height: 16px;
+            color: #888;
+            transition: all 0.25s ease;
+            stroke-width: 2;
+        }
+        .kway-select .kway-option:hover .kway-icon {
             color: #fff;
+        }
+        /* Emoji icons in target selector */
+        .kway-select .kway-option span.kway-icon {
+            font-size: 14px;
+            width: auto;
+            height: auto;
+            filter: grayscale(0.5);
+        }
+        .kway-select .kway-option:hover span.kway-icon,
+        .kway-select .kway-option.active span.kway-icon {
+            filter: grayscale(0);
         }
 
-        /* Glowy buttons */
+        /* Color variants */
+        .kway-select.purple { --kway-color: #a855f7; }
+        .kway-select.cyan { --kway-color: #00d4ff; }
+        .kway-select.yellow { --kway-color: #fbbf24; }
+        .kway-select.red { --kway-color: #ef4444; }
+        .kway-select.blue { --kway-color: #3b82f6; }
+
+        /* Party-specific active states */
+        .kway-select .kway-option.active.dem {
+            background: #3b82f6;
+            border-color: #3b82f6;
+            box-shadow: 0 0 12px #3b82f6;
+        }
+        .kway-select .kway-option.active.rep {
+            background: #ef4444;
+            border-color: #ef4444;
+            box-shadow: 0 0 12px #ef4444;
+        }
+        .kway-select .kway-option.active.tie {
+            background: #a855f7;
+            border-color: #a855f7;
+            box-shadow: 0 0 12px #a855f7;
+        }
+
+        /* Glowy buttons - horizontal row */
         .glow-buttons {
             display: flex;
-            flex-direction: column;
-            gap: 5px;
+            flex-direction: row;
+            gap: 4px;
         }
         .glow-btn {
-            padding: 10px 12px;
-            font-size: 10px;
-            font-weight: 700;
-            font-family: "Geom", sans-serif;
+            flex: 1;
+            padding: 10px 0;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
             transition: all 0.25s ease;
             position: relative;
             overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .glow-btn .btn-icon {
+            width: 16px;
+            height: 16px;
+            stroke-width: 2.5;
         }
         .glow-btn::before {
             content: '';
@@ -191,45 +248,42 @@
             background: linear-gradient(135deg, #00d4ff 0%, #0088ff 100%);
             color: #000;
             box-shadow:
-                0 0 20px rgba(0, 212, 255, 0.4),
-                0 0 40px rgba(0, 212, 255, 0.2),
+                0 0 15px rgba(0, 212, 255, 0.4),
                 inset 0 1px 0 rgba(255,255,255,0.3);
         }
         .glow-btn.play:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow:
-                0 0 30px rgba(0, 212, 255, 0.6),
-                0 0 60px rgba(0, 212, 255, 0.3);
+                0 0 25px rgba(0, 212, 255, 0.6),
+                0 0 50px rgba(0, 212, 255, 0.3);
         }
 
         .glow-btn.pause {
             background: linear-gradient(135deg, #ff4757 0%, #ff2d3a 100%);
             color: #fff;
             box-shadow:
-                0 0 20px rgba(255, 71, 87, 0.4),
-                0 0 40px rgba(255, 71, 87, 0.2),
+                0 0 15px rgba(255, 71, 87, 0.4),
                 inset 0 1px 0 rgba(255,255,255,0.3);
         }
         .glow-btn.pause:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow:
-                0 0 30px rgba(255, 71, 87, 0.6),
-                0 0 60px rgba(255, 71, 87, 0.3);
+                0 0 25px rgba(255, 71, 87, 0.6),
+                0 0 50px rgba(255, 71, 87, 0.3);
         }
 
         .glow-btn.reset {
             background: linear-gradient(135deg, #ffa500 0%, #ff8c00 100%);
             color: #000;
             box-shadow:
-                0 0 20px rgba(255, 165, 0, 0.4),
-                0 0 40px rgba(255, 165, 0, 0.2),
+                0 0 15px rgba(255, 165, 0, 0.4),
                 inset 0 1px 0 rgba(255,255,255,0.3);
         }
         .glow-btn.reset:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow:
-                0 0 30px rgba(255, 165, 0, 0.6),
-                0 0 60px rgba(255, 165, 0, 0.3);
+                0 0 25px rgba(255, 165, 0, 0.6),
+                0 0 50px rgba(255, 165, 0, 0.3);
         }
 
         .glow-btn:disabled {
@@ -267,7 +321,7 @@
         }
         .stat-carousel .carousel-items {
             position: relative;
-            height: 38px;
+            height: 44px;
         }
         .stat-carousel .carousel-item {
             position: absolute;
@@ -373,9 +427,10 @@
             margin-bottom: 6px;
         }
         .dash-value {
-            font-size: 28px;
+            font-size: 38px;
             font-weight: 700;
             color: #fff;
+            line-height: 1;
             transition: all 0.3s ease;
         }
         .dash-value.dem { color: #3b82f6; }
@@ -424,9 +479,9 @@
             display: flex;
             align-items: center;
             justify-content: flex-start;
-            padding-left: 10px;
+            padding-left: 12px;
             font-weight: 700;
-            font-size: 14px;
+            font-size: 20px;
             color: white;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
             box-shadow: 2px 0 10px rgba(59,130,246,0.5);
@@ -438,9 +493,9 @@
             display: flex;
             align-items: center;
             justify-content: flex-end;
-            padding-right: 10px;
+            padding-right: 12px;
             font-weight: 700;
-            font-size: 14px;
+            font-size: 20px;
             color: white;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
             box-shadow: -2px 0 10px rgba(239,68,68,0.5);
@@ -485,15 +540,20 @@
             justify-content: space-between;
             margin-top: 8px;
             padding-top: 8px;
+            padding-left: 10px;
+            padding-right: 10px;
             border-top: 1px solid #333;
+            overflow: visible;
         }
         .mini-stat {
             text-align: center;
+            overflow: visible;
         }
         .mini-stat-value {
-            font-size: 16px;
-            font-weight: 600;
+            font-size: 22px;
+            font-weight: 700;
             color: #00d4ff;
+            line-height: 1;
         }
         .mini-stat-label {
             font-size: 9px;
@@ -570,38 +630,58 @@
                         <input type="number" id="renderEvery" min="1" max="500" value="25" step="1">
                     </div>
 
-                    <div class="glow-select">
-                        <label>Color Mode</label>
-                        <select id="colorModeSelect">
-                            <option value="county-partisan">County Partisan</option>
-                            <option value="state-partisan">State Partisan</option>
-                            <option value="state">State Colors</option>
-                        </select>
+                    <div class="kway-select purple" id="colorModeKway">
+                        <div class="kway-label">Color</div>
+                        <div class="kway-options">
+                            <div class="kway-option active" data-value="county-partisan" title="County Partisan">
+                                <i data-lucide="map-pin" class="kway-icon"></i>
+                            </div>
+                            <div class="kway-option" data-value="state-partisan" title="State Partisan">
+                                <i data-lucide="landmark" class="kway-icon"></i>
+                            </div>
+                            <div class="kway-option" data-value="state" title="State Colors">
+                                <i data-lucide="palette" class="kway-icon"></i>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="glow-select">
-                        <label>Target</label>
-                        <select id="targetSelect">
-                            <option value="Republican">GOP Victory</option>
-                            <option value="Democratic">DEM Victory</option>
-                            <option value="Tie">Electoral Tie</option>
-                        </select>
+                    <div class="kway-select" id="targetKway">
+                        <div class="kway-label">Target</div>
+                        <div class="kway-options">
+                            <div class="kway-option active rep" data-value="Republican" title="GOP Victory">
+                                <span class="kway-icon">🐘</span>
+                            </div>
+                            <div class="kway-option dem" data-value="Democratic" title="DEM Victory">
+                                <span class="kway-icon">🫏</span>
+                            </div>
+                            <div class="kway-option tie" data-value="Tie" title="Electoral Tie">
+                                <i data-lucide="scale" class="kway-icon"></i>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="glow-select">
-                        <label>Algorithm</label>
-                        <select id="modeSelect">
-                            <option value="standard">Standard</option>
-                            <option value="follow_the_leader">Follow Leader</option>
-                            <option value="bfs">BFS</option>
-                            <option value="dfs">DFS</option>
-                        </select>
+                    <div class="kway-select cyan" id="modeKway">
+                        <div class="kway-label">Algorithm</div>
+                        <div class="kway-options">
+                            <div class="kway-option active" data-value="standard" title="Standard">
+                                <i data-lucide="shuffle" class="kway-icon"></i>
+                            </div>
+                            <div class="kway-option" data-value="follow_the_leader" title="Follow Leader">
+                                <i data-lucide="crown" class="kway-icon"></i>
+                            </div>
+                            <div class="kway-option" data-value="bfs" title="BFS">
+                                <i data-lucide="waves" class="kway-icon"></i>
+                            </div>
+                            <div class="kway-option" data-value="dfs" title="DFS">
+                                <i data-lucide="git-branch" class="kway-icon"></i>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="glow-buttons">
-                        <button class="glow-btn play" id="startBtn">Play</button>
-                        <button class="glow-btn pause" id="stopBtn" disabled>Pause</button>
-                        <button class="glow-btn reset" id="resetBtn">Reset</button>
+                        <button class="glow-btn play" id="startBtn"><i data-lucide="play" class="btn-icon"></i></button>
+                        <button class="glow-btn pause" id="stopBtn" disabled><i data-lucide="pause" class="btn-icon"></i></button>
+                        <button class="glow-btn reset" id="resetBtn"><i data-lucide="rotate-ccw" class="btn-icon"></i></button>
                     </div>
                 </div>
 
@@ -629,17 +709,21 @@
                             </div>
                             <div class="mini-stat stat-carousel" id="statesCarousel" style="--carousel-color: #00d4ff;">
                                 <div class="carousel-items">
-                                    <div class="carousel-item active" data-key="states">
-                                        <div class="mini-stat-value" id="stateCount">48</div>
-                                        <div class="mini-stat-label">States</div>
+                                    <div class="carousel-item active" data-key="demshare">
+                                        <div class="mini-stat-value" id="demShare" style="color: #3b82f6;">-</div>
+                                        <div class="mini-stat-label">Dem Share</div>
                                     </div>
-                                    <div class="carousel-item" data-key="popvote">
-                                        <div class="mini-stat-value" id="popVoteMargin">-</div>
-                                        <div class="mini-stat-label">Pop Vote</div>
+                                    <div class="carousel-item" data-key="repshare">
+                                        <div class="mini-stat-value" id="repShare" style="color: #ef4444;">-</div>
+                                        <div class="mini-stat-label">GOP Share</div>
                                     </div>
-                                    <div class="carousel-item" data-key="turnout">
-                                        <div class="mini-stat-value" id="totalPop">-</div>
-                                        <div class="mini-stat-label">Total Pop</div>
+                                    <div class="carousel-item" data-key="margin">
+                                        <div class="mini-stat-value" id="popMargin">-</div>
+                                        <div class="mini-stat-label">Margin</div>
+                                    </div>
+                                    <div class="carousel-item" data-key="year">
+                                        <div class="mini-stat-value" id="electionYear" style="color: #a855f7;">2020</div>
+                                        <div class="mini-stat-label">Year</div>
                                     </div>
                                 </div>
                                 <div class="carousel-dots"></div>
@@ -1034,24 +1118,28 @@
 
             // Update carousel items
             if (statesCarousel) {
-                // Popular vote margin with color
                 const pv = metrics.popVote;
-                const pvColor = pv.winner === 'dem' ? '#3b82f6' : pv.winner === 'rep' ? '#ef4444' : '#a855f7';
-                const pvLabel = pv.winner === 'dem' ? 'D' : pv.winner === 'rep' ? 'R' : '';
-                const pvHtml = `<span style="color:${pvColor}">${pvLabel}+${pv.margin.toFixed(1)}%</span>`;
-                statesCarousel.updateItem('popvote', pvHtml);
 
-                // Total population (formatted)
-                const totalPopFormatted = (pv.total / 1000000).toFixed(1) + 'M';
-                statesCarousel.updateItem('turnout', totalPopFormatted, '#00d4ff');
+                // Dem share
+                statesCarousel.updateItem('demshare', pv.demPct.toFixed(1) + '%', '#3b82f6');
+
+                // Rep share
+                statesCarousel.updateItem('repshare', pv.repPct.toFixed(1) + '%', '#ef4444');
+
+                // Margin with winner color
+                const marginColor = pv.winner === 'dem' ? '#3b82f6' : pv.winner === 'rep' ? '#ef4444' : '#a855f7';
+                const marginLabel = pv.winner === 'dem' ? 'D+' : pv.winner === 'rep' ? 'R+' : '';
+                statesCarousel.updateItem('margin', marginLabel + pv.margin.toFixed(1) + '%', marginColor);
             }
         }
 
         const iterationsInput = document.getElementById('iterations');
         const renderEveryInput = document.getElementById('renderEvery');
-        const targetSelect = document.getElementById('targetSelect');
-        const modeSelect = document.getElementById('modeSelect');
         let currentScore = 0;
+
+        // K-way selector state
+        let selectedTarget = 'Republican';
+        let selectedMode = 'standard';
 
         // Tooltip elements
         const stateTooltip = document.getElementById('stateTooltip');
@@ -1061,19 +1149,36 @@
         const tooltipEV = document.getElementById('tooltipEV');
         const tooltipLean = document.getElementById('tooltipLean');
 
-        iterationsInput.oninput = () => {
-            document.getElementById('iterationsValue').textContent = iterationsInput.value;
-        };
-        renderEveryInput.oninput = () => {
-            document.getElementById('renderEveryValue').textContent = renderEveryInput.value;
-        };
+        // K-way selector helper
+        function setupKwaySelector(containerId, onChange) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const options = container.querySelectorAll('.kway-option');
+            options.forEach(opt => {
+                opt.addEventListener('click', () => {
+                    options.forEach(o => o.classList.remove('active'));
+                    opt.classList.add('active');
+                    const value = opt.dataset.value;
+                    if (onChange) onChange(value);
+                });
+            });
+            // Return getter for current value
+            return () => container.querySelector('.kway-option.active')?.dataset.value;
+        }
 
-        // Color mode select
-        const colorModeSelect = document.getElementById('colorModeSelect');
-        colorModeSelect.onchange = () => {
-            colorMode = colorModeSelect.value;
+        // Setup k-way selectors
+        const getColorMode = setupKwaySelector('colorModeKway', (value) => {
+            colorMode = value;
             render();
-        };
+        });
+
+        const getTarget = setupKwaySelector('targetKway', (value) => {
+            selectedTarget = value;
+        });
+
+        const getMode = setupKwaySelector('modeKway', (value) => {
+            selectedMode = value;
+        });
 
         // Update election display
         function updateElectionDisplay() {
@@ -1590,8 +1695,8 @@
             socket.emit('start_algorithm', {
                 generations: parseInt(iterationsInput.value),
                 render_every: parseInt(renderEveryInput.value),
-                target: targetSelect.value,
-                mode: modeSelect.value
+                target: getTarget() || selectedTarget,
+                mode: getMode() || selectedMode
             });
             startBtn.disabled = true;
             stopBtn.disabled = false;
@@ -1623,6 +1728,9 @@
             render();
             iterationEl.textContent = '0';
         });
+
+        // Initialize Lucide icons
+        lucide.createIcons();
 
         // Start
         init();
