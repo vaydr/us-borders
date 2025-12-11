@@ -21,147 +21,7 @@
             padding: 20px;
         }
         .container { max-width: 1800px; margin: 0 auto; }
-        .header { text-align: center; padding: 20px; margin-bottom: 30px; }
-        .header h1 { font-size: 2.5em; margin-bottom: 10px; color: #fff; }
-        .header p { font-size: 1.1em; color: #aaa; }
-        .main { display: grid; grid-template-columns: 200px 1fr; gap: 20px; }
-        .controls {
-            background: linear-gradient(180deg, #252542 0%, #1a1a2e 100%);
-            padding: 15px;
-            border-radius: 12px;
-            height: fit-content;
-            border: 1px solid #333;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-        }
 
-        .control-group { margin-bottom: 12px; }
-        .control-group label {
-            display: block;
-            font-weight: 500;
-            margin-bottom: 6px;
-            color: #888;
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-        }
-        .control-group input[type="number"],
-        .control-group select {
-            width: 100%;
-            padding: 10px 12px;
-            background: linear-gradient(135deg, #1a1a2e 0%, #252542 100%);
-            border: 1px solid #444;
-            border-radius: 6px;
-            color: #fff;
-            font-size: 13px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            outline: none;
-        }
-        .control-group input[type="number"]:focus,
-        .control-group select:focus {
-            border-color: #00d4ff;
-            box-shadow: 0 0 15px rgba(0,212,255,0.2);
-        }
-        .control-group input[type="number"]:hover,
-        .control-group select:hover {
-            border-color: #555;
-        }
-        .control-group select option {
-            background: #1a1a2e;
-            padding: 10px;
-        }
-
-        .buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            margin-bottom: 12px;
-        }
-        button {
-            padding: 10px 10px;
-            font-size: 11px;
-            font-weight: 700;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            position: relative;
-            overflow: hidden;
-        }
-        button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s ease;
-        }
-        button:hover::before {
-            left: 100%;
-        }
-        #startBtn {
-            background: linear-gradient(135deg, #00d4ff 0%, #0088ff 100%);
-            color: #000;
-            box-shadow: 0 2px 10px rgba(0,212,255,0.3);
-        }
-        #startBtn:hover:not(:disabled) {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 15px rgba(0,212,255,0.4);
-        }
-        #stopBtn {
-            background: linear-gradient(135deg, #ff4757 0%, #ff2d3a 100%);
-            color: #fff;
-            box-shadow: 0 2px 10px rgba(255,71,87,0.3);
-        }
-        #stopBtn:hover:not(:disabled) {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 15px rgba(255,71,87,0.4);
-        }
-        #resetBtn {
-            background: linear-gradient(135deg, #ffa500 0%, #ff8c00 100%);
-            color: #000;
-            box-shadow: 0 2px 10px rgba(255,165,0,0.3);
-        }
-        #resetBtn:hover:not(:disabled) {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 15px rgba(255,165,0,0.4);
-        }
-        button:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-            transform: none !important;
-            box-shadow: none !important;
-        }
-        button:active:not(:disabled) {
-            transform: translateY(0);
-        }
-
-        /* Iteration counter in sidebar */
-        .iter-box {
-            background: linear-gradient(135deg, #1a1a2e 0%, #252542 100%);
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            border: 1px solid #333;
-            text-align: center;
-        }
-        .iter-box .iter-label {
-            font-size: 9px;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 4px;
-        }
-        .iter-box .iter-value {
-            font-size: 28px;
-            color: #00d4ff;
-            font-weight: 700;
-            text-shadow: 0 0 10px rgba(0,212,255,0.4);
-        }
         .viz {
             background: #252542;
             padding: 20px;
@@ -170,6 +30,286 @@
             flex-direction: column;
             align-items: center;
         }
+
+        /* Floating controls panel */
+        .floating-controls {
+            position: absolute;
+            top: -10px;
+            left: -320px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-family: "Geom", sans-serif;
+        }
+
+        /* Glowy iteration counter */
+        .iter-box {
+            background: rgba(10, 10, 20, 0.85);
+            backdrop-filter: blur(10px);
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            text-align: center;
+            box-shadow:
+                0 0 20px rgba(0, 212, 255, 0.15),
+                inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        .iter-box .iter-label {
+            font-size: 8px;
+            color: #00d4ff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 2px;
+            text-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
+        }
+        .iter-box .iter-value {
+            font-size: 26px;
+            color: #00d4ff;
+            font-weight: 700;
+            text-shadow:
+                0 0 10px rgba(0, 212, 255, 0.8),
+                0 0 20px rgba(0, 212, 255, 0.4);
+        }
+
+        /* Glowy input fields */
+        .glow-input {
+            background: rgba(10, 10, 20, 0.85);
+            backdrop-filter: blur(10px);
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            box-shadow:
+                0 0 15px rgba(168, 85, 247, 0.1),
+                inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        .glow-input label {
+            display: block;
+            font-size: 7px;
+            color: #a855f7;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 4px;
+            text-shadow: 0 0 6px rgba(168, 85, 247, 0.5);
+        }
+        .glow-input input[type="number"] {
+            width: 100%;
+            padding: 6px 8px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(168, 85, 247, 0.4);
+            border-radius: 5px;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: "Geom", sans-serif;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        .glow-input input[type="number"]:focus {
+            border-color: #a855f7;
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
+        }
+
+        /* Glowy dropdowns */
+        .glow-select {
+            background: rgba(10, 10, 20, 0.85);
+            backdrop-filter: blur(10px);
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            box-shadow:
+                0 0 15px rgba(251, 191, 36, 0.1),
+                inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        .glow-select label {
+            display: block;
+            font-size: 7px;
+            color: #fbbf24;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 4px;
+            text-shadow: 0 0 6px rgba(251, 191, 36, 0.5);
+        }
+        .glow-select select {
+            width: 100%;
+            padding: 6px 8px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(251, 191, 36, 0.4);
+            border-radius: 5px;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 600;
+            font-family: "Geom", sans-serif;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .glow-select select:focus {
+            border-color: #fbbf24;
+            box-shadow: 0 0 15px rgba(251, 191, 36, 0.4);
+        }
+        .glow-select select option {
+            background: #1a1a2e;
+            color: #fff;
+        }
+
+        /* Glowy buttons */
+        .glow-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .glow-btn {
+            padding: 10px 12px;
+            font-size: 10px;
+            font-weight: 700;
+            font-family: "Geom", sans-serif;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .glow-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.4s ease;
+        }
+        .glow-btn:hover::before {
+            left: 100%;
+        }
+
+        .glow-btn.play {
+            background: linear-gradient(135deg, #00d4ff 0%, #0088ff 100%);
+            color: #000;
+            box-shadow:
+                0 0 20px rgba(0, 212, 255, 0.4),
+                0 0 40px rgba(0, 212, 255, 0.2),
+                inset 0 1px 0 rgba(255,255,255,0.3);
+        }
+        .glow-btn.play:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow:
+                0 0 30px rgba(0, 212, 255, 0.6),
+                0 0 60px rgba(0, 212, 255, 0.3);
+        }
+
+        .glow-btn.pause {
+            background: linear-gradient(135deg, #ff4757 0%, #ff2d3a 100%);
+            color: #fff;
+            box-shadow:
+                0 0 20px rgba(255, 71, 87, 0.4),
+                0 0 40px rgba(255, 71, 87, 0.2),
+                inset 0 1px 0 rgba(255,255,255,0.3);
+        }
+        .glow-btn.pause:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow:
+                0 0 30px rgba(255, 71, 87, 0.6),
+                0 0 60px rgba(255, 71, 87, 0.3);
+        }
+
+        .glow-btn.reset {
+            background: linear-gradient(135deg, #ffa500 0%, #ff8c00 100%);
+            color: #000;
+            box-shadow:
+                0 0 20px rgba(255, 165, 0, 0.4),
+                0 0 40px rgba(255, 165, 0, 0.2),
+                inset 0 1px 0 rgba(255,255,255,0.3);
+        }
+        .glow-btn.reset:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow:
+                0 0 30px rgba(255, 165, 0, 0.6),
+                0 0 60px rgba(255, 165, 0, 0.3);
+        }
+
+        .glow-btn:disabled {
+            opacity: 0.25;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        .glow-btn:active:not(:disabled) {
+            transform: translateY(0) scale(0.98);
+        }
+
+        /* Pulsing animation for running state */
+        @keyframes glow-pulse {
+            0%, 100% {
+                box-shadow:
+                    0 0 20px rgba(0, 212, 255, 0.4),
+                    0 0 40px rgba(0, 212, 255, 0.2);
+            }
+            50% {
+                box-shadow:
+                    0 0 30px rgba(0, 212, 255, 0.6),
+                    0 0 60px rgba(0, 212, 255, 0.4);
+            }
+        }
+        .iter-box.running {
+            animation: glow-pulse 1.5s ease-in-out infinite;
+        }
+
+        /* Carousel component */
+        .stat-carousel {
+            position: relative;
+            overflow: hidden;
+            min-width: 70px;
+        }
+        .stat-carousel .carousel-items {
+            position: relative;
+            height: 38px;
+        }
+        .stat-carousel .carousel-item {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity 0.35s ease, transform 0.35s ease;
+            pointer-events: none;
+        }
+        .stat-carousel .carousel-item.active {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        .stat-carousel .carousel-item.exit {
+            opacity: 0;
+            transform: translateY(-8px);
+        }
+        .stat-carousel .carousel-dots {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            margin-top: 6px;
+        }
+        .stat-carousel .carousel-dot {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .stat-carousel .carousel-dot.active {
+            background: var(--carousel-color, #00d4ff);
+            box-shadow: 0 0 6px var(--carousel-color, #00d4ff);
+        }
+        .stat-carousel .carousel-dot:hover {
+            background: rgba(255,255,255,0.4);
+        }
+
         #mapCanvas {
             border-radius: 8px;
             background: #ffffff00;
@@ -408,67 +548,65 @@
     </div>
 
     <div class="container">
-
-        <div class="main">
-            <div class="controls">
-                <div class="iter-box">
-                    <div class="iter-label">Iteration</div>
-                    <div class="iter-value" id="iteration">0</div>
-                </div>
-
-                <div class="control-group">
-                    <label>Total Iterations</label>
-                    <input type="number" id="iterations" min="100" max="150000" value="5000" step="100">
-                </div>
-
-                <div class="control-group">
-                    <label>Update Every</label>
-                    <input type="number" id="renderEvery" min="1" max="500" value="25" step="1">
-                </div>
-
-                <div class="control-group">
-                    <label>Color Mode</label>
-                    <select id="colorModeSelect">
-                        <option value="county-partisan">County Partisan</option>
-                        <option value="state-partisan">State Partisan</option>
-                        <option value="state">State Colors</option>
-                    </select>
-                </div>
-
-                <div class="control-group">
-                    <label>Target</label>
-                    <select id="targetSelect">
-                        <option value="Republican">GOP Victory</option>
-                        <option value="Democratic">DEM Victory</option>
-                        <option value="Tie">Electoral Tie</option>
-                    </select>
-                </div>
-
-                <div class="control-group">
-                    <label>Algorithm</label>
-                    <select id="modeSelect">
-                        <option value="standard">Standard</option>
-                        <option value="follow_the_leader">Follow Leader</option>
-                        <option value="bfs">BFS</option>
-                        <option value="dfs">DFS</option>
-                    </select>
-                </div>
-
-                <div class="buttons">
-                    <button id="startBtn">Play</button>
-                    <button id="stopBtn" disabled>Pause</button>
-                    <button id="resetBtn">Reset</button>
-                </div>
+        <div class="viz">
+            <div id="loadingState" class="loading">
+                <div class="spinner"></div>
+                <p>Loading map data...</p>
             </div>
+            <div class="viz-container">
+                <div class="floating-controls" id="floatingControls" style="display: none;">
+                    <div class="iter-box" id="iterBox">
+                        <div class="iter-label">Iteration</div>
+                        <div class="iter-value" id="iteration">0</div>
+                    </div>
 
-            <div class="viz">
-                <div id="loadingState" class="loading">
-                    <div class="spinner"></div>
-                    <p>Loading map data...</p>
+                    <div class="glow-input">
+                        <label>Terminate After</label>
+                        <input type="number" id="iterations" min="100" max="150000" value="5000" step="100">
+                    </div>
+
+                    <div class="glow-input">
+                        <label>Redraw Period</label>
+                        <input type="number" id="renderEvery" min="1" max="500" value="25" step="1">
+                    </div>
+
+                    <div class="glow-select">
+                        <label>Color Mode</label>
+                        <select id="colorModeSelect">
+                            <option value="county-partisan">County Partisan</option>
+                            <option value="state-partisan">State Partisan</option>
+                            <option value="state">State Colors</option>
+                        </select>
+                    </div>
+
+                    <div class="glow-select">
+                        <label>Target</label>
+                        <select id="targetSelect">
+                            <option value="Republican">GOP Victory</option>
+                            <option value="Democratic">DEM Victory</option>
+                            <option value="Tie">Electoral Tie</option>
+                        </select>
+                    </div>
+
+                    <div class="glow-select">
+                        <label>Algorithm</label>
+                        <select id="modeSelect">
+                            <option value="standard">Standard</option>
+                            <option value="follow_the_leader">Follow Leader</option>
+                            <option value="bfs">BFS</option>
+                            <option value="dfs">DFS</option>
+                        </select>
+                    </div>
+
+                    <div class="glow-buttons">
+                        <button class="glow-btn play" id="startBtn">Play</button>
+                        <button class="glow-btn pause" id="stopBtn" disabled>Pause</button>
+                        <button class="glow-btn reset" id="resetBtn">Reset</button>
+                    </div>
                 </div>
-                <div class="viz-container">
-                    <canvas id="mapCanvas" style="display: none;"></canvas>
-                </div>
+
+                <canvas id="mapCanvas" style="display: none;"></canvas>
+            </div>
                 
                 <div class="dashboard" id="dashboard" style="display: none;">
                     <!-- EV Bar - Full Width -->
@@ -489,9 +627,22 @@
                                 <div class="mini-stat-value" id="evMargin">0</div>
                                 <div class="mini-stat-label">EV Margin</div>
                             </div>
-                            <div class="mini-stat">
-                                <div class="mini-stat-value" id="stateCount">48</div>
-                                <div class="mini-stat-label">States</div>
+                            <div class="mini-stat stat-carousel" id="statesCarousel" style="--carousel-color: #00d4ff;">
+                                <div class="carousel-items">
+                                    <div class="carousel-item active" data-key="states">
+                                        <div class="mini-stat-value" id="stateCount">48</div>
+                                        <div class="mini-stat-label">States</div>
+                                    </div>
+                                    <div class="carousel-item" data-key="popvote">
+                                        <div class="mini-stat-value" id="popVoteMargin">-</div>
+                                        <div class="mini-stat-label">Pop Vote</div>
+                                    </div>
+                                    <div class="carousel-item" data-key="turnout">
+                                        <div class="mini-stat-value" id="totalPop">-</div>
+                                        <div class="mini-stat-label">Total Pop</div>
+                                    </div>
+                                </div>
+                                <div class="carousel-dots"></div>
                             </div>
                         </div>
                     </div>
@@ -577,6 +728,8 @@
         const startBtn = document.getElementById('startBtn');
         const stopBtn = document.getElementById('stopBtn');
         const loadingState = document.getElementById('loadingState');
+        const floatingControls = document.getElementById('floatingControls');
+        const iterBox = document.getElementById('iterBox');
         // Dashboard elements
         const iterationEl = document.getElementById('iteration');
         const dashboard = document.getElementById('dashboard');
@@ -604,6 +757,116 @@
         const SPARKLINE_LENGTH = 20;
         let swingHistory = [];
         let fairnessHistory = [];
+
+        // Carousel elements
+        const popVoteMarginEl = document.getElementById('popVoteMargin');
+        const totalPopEl = document.getElementById('totalPop');
+
+        /**
+         * StatCarousel - Reusable carousel component
+         * @param {string} containerId - ID of the carousel container element
+         * @param {number} period - Time in ms between rotations (default 5000)
+         */
+        class StatCarousel {
+            constructor(containerId, period = 5000) {
+                this.container = document.getElementById(containerId);
+                if (!this.container) return;
+
+                this.items = this.container.querySelectorAll('.carousel-item');
+                this.dotsContainer = this.container.querySelector('.carousel-dots');
+                this.currentIndex = 0;
+                this.period = period;
+                this.intervalId = null;
+
+                this.init();
+            }
+
+            init() {
+                if (this.items.length <= 1) return;
+
+                // Create dots
+                this.items.forEach((_, i) => {
+                    const dot = document.createElement('div');
+                    dot.className = 'carousel-dot' + (i === 0 ? ' active' : '');
+                    dot.onclick = () => this.goTo(i);
+                    this.dotsContainer.appendChild(dot);
+                });
+
+                this.dots = this.dotsContainer.querySelectorAll('.carousel-dot');
+                this.start();
+            }
+
+            start() {
+                if (this.intervalId) clearInterval(this.intervalId);
+                this.intervalId = setInterval(() => this.next(), this.period);
+            }
+
+            stop() {
+                if (this.intervalId) {
+                    clearInterval(this.intervalId);
+                    this.intervalId = null;
+                }
+            }
+
+            next() {
+                this.goTo((this.currentIndex + 1) % this.items.length);
+            }
+
+            goTo(index) {
+                if (index === this.currentIndex) return;
+
+                // Exit current
+                this.items[this.currentIndex].classList.remove('active');
+                this.items[this.currentIndex].classList.add('exit');
+                this.dots[this.currentIndex].classList.remove('active');
+
+                // After transition, remove exit class
+                setTimeout(() => {
+                    this.items[this.currentIndex].classList.remove('exit');
+                    this.currentIndex = index;
+
+                    // Enter new
+                    this.items[this.currentIndex].classList.add('active');
+                    this.dots[this.currentIndex].classList.add('active');
+                }, 50);
+
+                // Reset timer on manual navigation
+                this.start();
+            }
+
+            // Add a new item dynamically
+            addItem(key, valueHtml, label) {
+                const item = document.createElement('div');
+                item.className = 'carousel-item';
+                item.dataset.key = key;
+                item.innerHTML = `
+                    <div class="mini-stat-value" id="${key}Value">${valueHtml}</div>
+                    <div class="mini-stat-label">${label}</div>
+                `;
+                this.container.querySelector('.carousel-items').appendChild(item);
+
+                const dot = document.createElement('div');
+                dot.className = 'carousel-dot';
+                dot.onclick = () => this.goTo(this.items.length);
+                this.dotsContainer.appendChild(dot);
+
+                // Refresh items and dots
+                this.items = this.container.querySelectorAll('.carousel-item');
+                this.dots = this.dotsContainer.querySelectorAll('.carousel-dot');
+            }
+
+            // Update value by key
+            updateItem(key, valueHtml, color = null) {
+                const item = this.container.querySelector(`[data-key="${key}"] .mini-stat-value`);
+                if (item) {
+                    item.innerHTML = valueHtml;
+                    if (color) item.style.color = color;
+                }
+            }
+        }
+
+        // Initialize carousels (will be done after DOM ready)
+        let statesCarousel = null;
 
         // Calculate dashboard metrics
         function calculateDashboardMetrics() {
@@ -660,7 +923,24 @@
                 evMarginValue = repEVPct - repPopPct;
             }
 
-            return { swingCount, evMarginValue, evWinner, categories: { safeD, leanD, tossup, leanR, safeR }, stateCount: states.length };
+            // Popular vote margin
+            const popVoteMargin = Math.abs(demPopPct - repPopPct);
+            const popVoteWinner = demPopPct > repPopPct ? 'dem' : repPopPct > demPopPct ? 'rep' : 'tie';
+
+            return {
+                swingCount,
+                evMarginValue,
+                evWinner,
+                categories: { safeD, leanD, tossup, leanR, safeR },
+                stateCount: states.length,
+                popVote: {
+                    demPct: demPopPct,
+                    repPct: repPopPct,
+                    margin: popVoteMargin,
+                    winner: popVoteWinner,
+                    total: totalPopVote
+                }
+            };
         }
 
         // Update sparkline
@@ -751,6 +1031,20 @@
 
             // Update state count
             if (stateCountEl) stateCountEl.textContent = metrics.stateCount;
+
+            // Update carousel items
+            if (statesCarousel) {
+                // Popular vote margin with color
+                const pv = metrics.popVote;
+                const pvColor = pv.winner === 'dem' ? '#3b82f6' : pv.winner === 'rep' ? '#ef4444' : '#a855f7';
+                const pvLabel = pv.winner === 'dem' ? 'D' : pv.winner === 'rep' ? 'R' : '';
+                const pvHtml = `<span style="color:${pvColor}">${pvLabel}+${pv.margin.toFixed(1)}%</span>`;
+                statesCarousel.updateItem('popvote', pvHtml);
+
+                // Total population (formatted)
+                const totalPopFormatted = (pv.total / 1000000).toFixed(1) + 'M';
+                statesCarousel.updateItem('turnout', totalPopFormatted, '#00d4ff');
+            }
         }
 
         const iterationsInput = document.getElementById('iterations');
@@ -1229,10 +1523,15 @@
                 // Initial render
                 render();
 
-                // Show canvas
+                // Show canvas and controls
                 loadingState.style.display = 'none';
                 canvas.style.display = 'block';
+                if (floatingControls) floatingControls.style.display = 'flex';
                 if (dashboard) dashboard.style.display = 'grid';
+
+                // Initialize carousels
+                statesCarousel = new StatCarousel('statesCarousel', 5000);
+
                 updateElectionDisplay();
                 updateDashboard();
 
@@ -1276,12 +1575,14 @@
         socket.on('algorithm_complete', () => {
             startBtn.disabled = false;
             stopBtn.disabled = true;
+            if (iterBox) iterBox.classList.remove('running');
         });
 
         socket.on('error', (data) => {
             console.error('Error:', data.message);
             startBtn.disabled = false;
             stopBtn.disabled = true;
+            if (iterBox) iterBox.classList.remove('running');
         });
 
         // Button handlers
@@ -1294,12 +1595,14 @@
             });
             startBtn.disabled = true;
             stopBtn.disabled = false;
+            if (iterBox) iterBox.classList.add('running');
         };
 
         stopBtn.onclick = () => {
             socket.emit('stop_algorithm');
             startBtn.disabled = false;
             stopBtn.disabled = true;
+            if (iterBox) iterBox.classList.remove('running');
         };
 
         const resetBtn = document.getElementById('resetBtn');
@@ -1307,6 +1610,7 @@
             socket.emit('reset_algorithm');
             startBtn.disabled = false;
             stopBtn.disabled = true;
+            if (iterBox) iterBox.classList.remove('running');
         };
 
         socket.on('reset_complete', (data) => {
