@@ -464,8 +464,8 @@
         /* Floating EV Panel (right side) */
         .floating-ev {
             position: absolute;
-            top: 10px;
-            right: -180px;
+            top: 0px;
+            right: -330px;
             z-index: 100;
             display: flex;
             flex-direction: row;
@@ -475,13 +475,13 @@
 
         /* Vertical EV Bar */
         .ev-bar-vertical {
-            width: 50px;
-            height: 280px;
+            width: 60px;
+            height: 500px;
             background: rgba(10, 10, 20, 0.85);
             backdrop-filter: blur(10px);
             border-radius: 10px;
             border: 1px solid rgba(168, 85, 247, 0.3);
-            padding: 8px;
+            padding: 10px;
             display: flex;
             flex-direction: column;
             box-shadow:
@@ -492,7 +492,7 @@
             flex: 1;
             background: #222;
             border-radius: 6px;
-            overflow: hidden;
+            overflow: show;
             display: flex;
             flex-direction: column;
             position: relative;
@@ -505,12 +505,39 @@
             display: flex;
             align-items: flex-start;
             justify-content: center;
-            padding-top: 8px;
+            padding-top: 12px;
             font-weight: 700;
-            font-size: 16px;
+            font-size: 22px;
             color: white;
             text-shadow: 0 2px 4px rgba(0,0,0,0.5);
             box-shadow: 0 2px 15px rgba(239,68,68,0.5);
+            overflow: show;
+        }
+        .ev-bar-rep-swing-v {
+            background: linear-gradient(180deg, #f87171 0%, #fca5a5 100%);
+            width: 100%;
+            transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            color: #7f1d1d;
+            text-shadow: 0 1px 2px rgba(255,255,255,0.3);
+            overflow: show;
+        }
+        .ev-bar-dem-swing-v {
+            background: linear-gradient(0deg, #60a5fa 0%, #93c5fd 100%);
+            width: 100%;
+            transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            color: #1e3a8a;
+            text-shadow: 0 1px 2px rgba(255,255,255,0.3);
+            overflow: show;
         }
         .ev-bar-dem-v {
             background: linear-gradient(0deg, #2563eb 0%, #3b82f6 100%);
@@ -519,12 +546,13 @@
             display: flex;
             align-items: flex-end;
             justify-content: center;
-            padding-bottom: 8px;
+            padding-bottom: 12px;
             font-weight: 700;
-            font-size: 16px;
+            font-size: 22px;
             color: white;
             text-shadow: 0 -2px 4px rgba(0,0,0,0.5);
             box-shadow: 0 -2px 15px rgba(59,130,246,0.5);
+            overflow: show;
         }
         .ev-270-line {
             position: absolute;
@@ -532,9 +560,31 @@
             right: 0;
             top: 50%;
             height: 2px;
-            background: rgba(255,255,255,0.4);
+            background: rgba(255,255,255,0.8);
             transform: translateY(-50%);
             box-shadow: 0 0 8px rgba(255,255,255,0.3);
+        }
+        .ev-total-label {
+            position: absolute;
+            left: -45px;
+            font-weight: 700;
+            font-size: 24px;
+            text-shadow: 0 0 10px currentColor;
+            transition: all 0.3s ease;
+        }
+        .ev-total-label.rep {
+            top: 8px;
+            left: -80px;
+            color: #ef4444;
+        }
+        .ev-total-label.dem {
+            bottom: 8px;
+            left: -80px;
+            color: #3b82f6;
+        }
+        .ev-total-label.winner {
+            font-size: 32px;
+            text-shadow: 0 0 20px currentColor, 0 0 30px currentColor;
         }
         .ev-270-label {
             position: absolute;
@@ -551,20 +601,20 @@
         .ev-stats-col {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 10px;
             justify-content: center;
         }
         .ev-stat-box {
             background: rgba(10, 10, 20, 0.85);
             backdrop-filter: blur(10px);
-            padding: 8px 12px;
-            border-radius: 8px;
+            padding: 12px 16px;
+            border-radius: 10px;
             border: 1px solid rgba(255, 255, 255, 0.1);
             text-align: center;
-            min-width: 80px;
+            min-width: 120px;
         }
         .ev-stat-box .stat-value {
-            font-size: 20px;
+            font-size: 28px;
             font-weight: 700;
             line-height: 1;
             color: #00d4ff;
@@ -574,17 +624,17 @@
         .ev-stat-box .stat-value.rep { color: #ef4444; text-shadow: 0 0 10px rgba(239,68,68,0.5); }
         .ev-stat-box .stat-value.purple { color: #a855f7; text-shadow: 0 0 10px rgba(168,85,247,0.5); }
         .ev-stat-box .stat-label {
-            font-size: 7px;
+            font-size: 9px;
             color: #666;
             text-transform: uppercase;
             letter-spacing: 1.5px;
-            margin-top: 2px;
+            margin-top: 4px;
         }
         .ev-stat-box.stat-carousel .carousel-items {
-            height: 36px;
+            height: 48px;
         }
         .ev-stat-box.stat-carousel .carousel-dots {
-            margin-top: 4px;
+            margin-top: 6px;
         }
         
         /* Tipping Point Histogram (positioned top-right) */
@@ -818,8 +868,12 @@
                     <div class="ev-bar-vertical">
                         <div class="ev-bar-track">
                             <div class="ev-bar-rep-v" id="evRepBarV"><span id="evRepV">0</span></div>
+                            <div class="ev-bar-rep-swing-v" id="evRepSwingBarV"><span id="evRepSwingV"></span></div>
+                            <div class="ev-bar-dem-swing-v" id="evDemSwingBarV"><span id="evDemSwingV"></span></div>
                             <div class="ev-bar-dem-v" id="evDemBarV"><span id="evDemV">0</span></div>
                             <div class="ev-270-line"></div>
+                            <span class="ev-total-label rep" id="evTotalRep">0</span>
+                            <span class="ev-total-label dem" id="evTotalDem">0</span>
                         </div>
                     </div>
                     <div class="ev-stats-col">
@@ -963,8 +1017,14 @@
         // Vertical EV bar elements
         const evDemBarV = document.getElementById('evDemBarV');
         const evRepBarV = document.getElementById('evRepBarV');
+        const evDemSwingBarV = document.getElementById('evDemSwingBarV');
+        const evRepSwingBarV = document.getElementById('evRepSwingBarV');
         const evDemVEl = document.getElementById('evDemV');
         const evRepVEl = document.getElementById('evRepV');
+        const evDemSwingVEl = document.getElementById('evDemSwingV');
+        const evRepSwingVEl = document.getElementById('evRepSwingV');
+        const evTotalRepEl = document.getElementById('evTotalRep');
+        const evTotalDemEl = document.getElementById('evTotalDem');
         const winnerVEl = document.getElementById('winnerV');
         const evMarginVEl = document.getElementById('evMarginV');
         const swingEVsEl = document.getElementById('swingEVs');
@@ -1303,27 +1363,75 @@
 
         // Update vertical EV bar
         function updateVerticalEVBar() {
-            const totalEV = election.r_ev + election.d_ev;
-            const demPct = totalEV > 0 ? (election.d_ev / totalEV) * 100 : 50;
-            const repPct = totalEV > 0 ? (election.r_ev / totalEV) * 100 : 50;
+            // Calculate swing EVs for each party
+            let demSafeEV = 0, demSwingEV = 0, repSafeEV = 0, repSwingEV = 0;
 
-            if (evDemBarV) evDemBarV.style.height = demPct + '%';
-            if (evRepBarV) evRepBarV.style.height = repPct + '%';
-            if (evDemVEl) evDemVEl.textContent = election.d_ev;
-            if (evRepVEl) evRepVEl.textContent = election.r_ev;
+            for (const [state, lean] of Object.entries(stateLeans)) {
+                const ev = stateEVs[state] || 0;
+                const isSwing = Math.abs(lean) <= 0.05;
 
-            // Update winner
-            const winner = election.d_ev > election.r_ev ? 'DEM' : election.r_ev > election.d_ev ? 'GOP' : 'TIE';
+                if (lean < 0) {
+                    // Dem-leaning state
+                    if (isSwing) {
+                        demSwingEV += ev;
+                    } else {
+                        demSafeEV += ev;
+                    }
+                } else if (lean > 0) {
+                    // Rep-leaning state
+                    if (isSwing) {
+                        repSwingEV += ev;
+                    } else {
+                        repSafeEV += ev;
+                    }
+                } else {
+                    // Exactly 0 - split as swing
+                    demSwingEV += ev / 2;
+                    repSwingEV += ev / 2;
+                }
+            }
+
+            const totalEV = demSafeEV + demSwingEV + repSafeEV + repSwingEV;
+            const demSafePct = totalEV > 0 ? (demSafeEV / totalEV) * 100 : 25;
+            const demSwingPct = totalEV > 0 ? (demSwingEV / totalEV) * 100 : 25;
+            const repSafePct = totalEV > 0 ? (repSafeEV / totalEV) * 100 : 25;
+            const repSwingPct = totalEV > 0 ? (repSwingEV / totalEV) * 100 : 25;
+
+            if (evRepBarV) evRepBarV.style.height = repSafePct + '%';
+            if (evRepSwingBarV) evRepSwingBarV.style.height = repSwingPct + '%';
+            if (evDemSwingBarV) evDemSwingBarV.style.height = demSwingPct + '%';
+            if (evDemBarV) evDemBarV.style.height = demSafePct + '%';
+
+            if (evRepVEl) evRepVEl.textContent = Math.round(repSafeEV);
+            if (evRepSwingVEl) evRepSwingVEl.textContent = repSwingEV > 0 ? Math.round(repSwingEV) : '';
+            if (evDemSwingVEl) evDemSwingVEl.textContent = demSwingEV > 0 ? Math.round(demSwingEV) : '';
+            if (evDemVEl) evDemVEl.textContent = Math.round(demSafeEV);
+
+            // Update winner (based on total EVs)
+            const totalDem = demSafeEV + demSwingEV;
+            const totalRep = repSafeEV + repSwingEV;
+            const winner = totalDem > totalRep ? 'DEM' : totalRep > totalDem ? 'GOP' : 'TIE';
+
+            // Update total labels on the left side
+            if (evTotalRepEl) {
+                evTotalRepEl.textContent = Math.round(totalRep);
+                evTotalRepEl.className = 'ev-total-label rep' + (winner === 'GOP' ? ' winner' : '');
+            }
+            if (evTotalDemEl) {
+                evTotalDemEl.textContent = Math.round(totalDem);
+                evTotalDemEl.className = 'ev-total-label dem' + (winner === 'DEM' ? ' winner' : '');
+            }
+
             if (winnerVEl) {
                 winnerVEl.textContent = winner;
                 winnerVEl.className = 'stat-value ' + (winner === 'DEM' ? 'dem' : winner === 'GOP' ? 'rep' : 'purple');
             }
 
             // Update EV margin
-            const margin = Math.abs(election.d_ev - election.r_ev);
+            const margin = Math.abs(totalDem - totalRep);
             if (evMarginVEl) {
-                evMarginVEl.textContent = margin;
-                evMarginVEl.className = 'stat-value ' + (election.d_ev > election.r_ev ? 'dem' : election.r_ev > election.d_ev ? 'rep' : 'purple');
+                evMarginVEl.textContent = Math.round(margin);
+                evMarginVEl.className = 'stat-value ' + (totalDem > totalRep ? 'dem' : totalRep > totalDem ? 'rep' : 'purple');
             }
         }
 
