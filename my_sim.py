@@ -78,6 +78,7 @@ def iteration():
         return
     return
 
+
 def generate_initial_partisan_lean(year: int | None = None):
     
     global county_to_partisan_lean
@@ -128,20 +129,27 @@ def _is_state_contiguous(state):
 
 def compute_state_to_partisan_lean():
     global state_to_partisan_lean
+    global state_to_ev
     state_to_partisan_lean = {}
+    state_to_ev = {}
+    temp = {}
     for state, counties in state_to_counties.items():
         if counties:
             avg_lean = sum(county_to_partisan_lean[county] * county_to_population[county] for county in counties) / sum(county_to_population[county] for county in counties)
             state_to_partisan_lean[state] = avg_lean
-    return state_to_partisan_lean
-
+        temp[state] = sum(county_to_population[county] for county in counties)
+    
+    total_population = sum(temp.values())
+    for state, population in temp.items():
+        state_to_ev[state] = int(round(population * 538 / total_population))
+    
 def _reward_score(lean:float, tie_mode:bool = False):
     #lean is between -1 and 1
     if lean == 0:
         return 10000 if tie_mode else 0
     else:
         return 1/(10 * lean**2) if tie_mode else 1/(10 * lean)
-def get_configuration_score(winner: "Republican" | "Democratic" | "Tie"):
+def get_configuration_score(winner: str):
     global state_to_partisan_lean
     score = 0
     if winner != "Tie":
@@ -153,6 +161,57 @@ def get_configuration_score(winner: "Republican" | "Democratic" | "Tie"):
             score += _reward_score(partisan_lean, tie_mode=True)
 
     return score
+
+def iteration_greedy(target='Republican'):
+    """
+    Stochastic hill-climb: try a random valid move, accept if it improves score.
+    Much faster than evaluating all moves.
+    target: 'Republican', 'Democratic', or 'Tie'
+    """
+    import random
+
+    compute_state_to_partisan_lean()
+    current_score = get_configuration_score(target)
+
+    # Use existing sampling functions to get a candidate move
+    state_to_grow = sample_state()
+    if state_to_grow not in state_to_bordering_counties or not state_to_bordering_counties[state_to_grow]:
+        return False
+
+    pivot_county = sample_adjacent_county(state_to_grow)
+    from_state = county_to_state[pivot_county]
+
+    # Try the move
+    state_to_counties[from_state].remove(pivot_county)
+    state_to_counties[state_to_grow].add(pivot_county)
+    county_to_state[pivot_county] = state_to_grow
+
+    # Check contiguity
+    if not _is_state_contiguous(from_state):
+        # Undo invalid move
+        state_to_counties[state_to_grow].remove(pivot_county)
+        state_to_counties[from_state].add(pivot_county)
+        county_to_state[pivot_county] = from_state
+        return False
+
+    # Compute new score
+    compute_state_to_bordering_counties()
+    compute_state_to_partisan_lean()
+    new_score = get_configuration_score(target)
+
+    # Accept if better, otherwise undo
+    if new_score >= current_score:
+        return True
+    else:
+        # Undo the move
+        state_to_counties[state_to_grow].remove(pivot_county)
+        state_to_counties[from_state].add(pivot_county)
+        county_to_state[pivot_county] = from_state
+        compute_state_to_bordering_counties()
+        compute_state_to_partisan_lean()
+        return False
+
+
 def compute_election_winner():
     global state_to_partisan_lean
     r_win, d_win = 0, 0

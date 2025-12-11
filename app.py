@@ -148,6 +148,12 @@ def on_disconnect():
     print('Client disconnected')
 
 
+def get_current_score(target):
+    """Get current configuration score for the given target."""
+    my_sim.compute_state_to_partisan_lean()
+    return my_sim.get_configuration_score(target)
+
+
 @socketio.on('start_algorithm')
 def start_algorithm(data):
     """Run simulation - sends only color updates, not images."""
@@ -159,7 +165,8 @@ def start_algorithm(data):
 
     iterations = data.get('generations', 25000)
     render_every = data.get('render_every', 50)
-    print(f"Starting {iterations} iterations, updating every {render_every}")
+    target = data.get('target', 'Republican')  # 'Republican', 'Democratic', or 'Tie'
+    print(f"Starting {iterations} iterations, updating every {render_every}, target: {target}")
 
     def run():
         global is_running
@@ -170,7 +177,7 @@ def start_algorithm(data):
                 if not is_running:
                     break
 
-                my_sim.iteration()
+                my_sim.iteration_greedy(target)
 
                 # Send color update every N iterations
                 if (i + 1) % render_every == 0 or (i + 1) == iterations:
@@ -181,7 +188,8 @@ def start_algorithm(data):
                         'colors': get_county_colors(),
                         'stateLeans': get_state_partisan_leans(),
                         'countyToState': {str(geoid): str(state) for geoid, state in my_sim.county_to_state.items()},
-                        'election': get_election_results()
+                        'election': get_election_results(),
+                        'score': get_current_score(target)
                     })
 
             socketio.emit('algorithm_complete', {'generations': iterations})
@@ -199,7 +207,7 @@ def start_algorithm(data):
     thread.daemon = True
     thread.start()
 
-    emit('algorithm_started', {'iterations': iterations})
+    emit('algorithm_started', {'iterations': iterations, 'target': target})
 
 
 @socketio.on('stop_algorithm')

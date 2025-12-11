@@ -211,6 +211,15 @@
                     </select>
                 </div>
 
+                <div class="control-group">
+                    <label>Optimization Target</label>
+                    <select id="targetSelect" style="width: 100%; padding: 10px; background: #1a1a2e; border: 1px solid #444; border-radius: 5px; color: #fff; font-size: 14px;">
+                        <option value="Republican">Republican Win</option>
+                        <option value="Democratic">Democratic Win</option>
+                        <option value="Tie">Tie</option>
+                    </select>
+                </div>
+
                 <div class="buttons">
                     <button id="startBtn">Play</button>
                     <button id="stopBtn" disabled>Stop</button>
@@ -243,12 +252,12 @@
                         <div class="stat-value" id="iteration">0</div>
                     </div>
                     <div class="stat">
-                        <div class="stat-label">Progress</div>
-                        <div class="stat-value" id="percent">0%</div>
-                    </div>
-                    <div class="stat">
                         <div class="stat-label">Winner</div>
                         <div class="stat-value" id="winner">-</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Score</div>
+                        <div class="stat-value" id="score">0</div>
                     </div>
                 </div>
                 <div class="election-results" id="electionResults" style="display: none;">
@@ -296,8 +305,8 @@
         const progressText = document.getElementById('progressText');
         const stats = document.getElementById('stats');
         const iterationEl = document.getElementById('iteration');
-        const percentEl = document.getElementById('percent');
         const winnerEl = document.getElementById('winner');
+        const scoreEl = document.getElementById('score');
         const electionResults = document.getElementById('electionResults');
         const evDemBar = document.getElementById('evDemBar');
         const evRepBar = document.getElementById('evRepBar');
@@ -305,6 +314,8 @@
         const evRepEl = document.getElementById('evRep');
         const iterationsInput = document.getElementById('iterations');
         const renderEveryInput = document.getElementById('renderEvery');
+        const targetSelect = document.getElementById('targetSelect');
+        let currentScore = 0;
 
         iterationsInput.oninput = () => {
             document.getElementById('iterationsValue').textContent = iterationsInput.value;
@@ -645,13 +656,16 @@
                 election = data.election;
                 updateElectionDisplay();
             }
+            if (data.score !== undefined) {
+                currentScore = data.score;
+                scoreEl.textContent = currentScore.toFixed(2);
+            }
             render();
 
             const prog = (data.generation / data.total) * 100;
             progressBar.style.width = prog + '%';
             progressText.textContent = `${data.generation} / ${data.total}`;
             iterationEl.textContent = data.generation;
-            percentEl.textContent = Math.round(prog) + '%';
         });
 
         socket.on('algorithm_started', (data) => {
@@ -674,11 +688,12 @@
         startBtn.onclick = () => {
             socket.emit('start_algorithm', {
                 generations: parseInt(iterationsInput.value),
-                render_every: parseInt(renderEveryInput.value)
+                render_every: parseInt(renderEveryInput.value),
+                target: targetSelect.value
             });
             startBtn.disabled = true;
             stopBtn.disabled = false;
-            statusText.textContent = 'Running';
+            statusText.textContent = 'Running (' + targetSelect.value + ')';
             stats.style.display = 'grid';
         };
 
