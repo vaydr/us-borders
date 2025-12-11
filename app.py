@@ -246,7 +246,12 @@ def reset_algorithm():
     my_sim.reset_follow_the_leader()
 
     print("Algorithm reset to initial state")
-    emit('reset_complete', {'colors': get_county_colors()})
+    emit('reset_complete', {
+        'colors': get_county_colors(),
+        'stateLeans': get_state_partisan_leans(),
+        'countyToState': {str(geoid): str(state) for geoid, state in my_sim.county_to_state.items()},
+        'election': get_election_results()
+    })
 
 
 if __name__ == '__main__':

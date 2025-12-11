@@ -439,14 +439,14 @@
         // Format partisan lean for display
         function formatLean(lean) {
             if (lean === undefined || lean === null) return 'N/A';
-            const pct = Math.abs(lean * 100).toFixed(1);
-            if (Math.abs(lean) < 0.005) return 'EVEN';
+            const pct = Math.abs(lean * 100).toFixed(2);
+            if (Math.abs(lean) < 0.000005) return 'EVEN';
             return lean > 0 ? 'R+' + pct : 'D+' + pct;
         }
 
         // Get CSS class for lean
         function getLeanClass(lean) {
-            if (lean === undefined || lean === null || Math.abs(lean) < 0.005) return 'lean-even';
+            if (lean === undefined || lean === null || Math.abs(lean) < 0.000005) return 'lean-even';
             return lean > 0 ? 'lean-rep' : 'lean-dem';
         }
 
@@ -502,12 +502,9 @@
             return null;
         }
 
-        // Show tooltip for a state
-        function showTooltip(state, mouseX, mouseY) {
-            if (!state) {
-                stateTooltip.style.display = 'none';
-                return;
-            }
+        // Update tooltip content without repositioning (for live updates during animation)
+        function updateTooltipContent(state) {
+            if (!state) return;
 
             const stateName = stateNames[state] || state;
             const countyCount = stateCountyCounts[state] || 0;
@@ -521,6 +518,16 @@
             tooltipEV.textContent = ev;
             tooltipLean.textContent = formatLean(lean);
             tooltipLean.className = getLeanClass(lean);
+        }
+
+        // Show tooltip for a state
+        function showTooltip(state, mouseX, mouseY) {
+            if (!state) {
+                stateTooltip.style.display = 'none';
+                return;
+            }
+
+            updateTooltipContent(state);
 
             // Position tooltip near mouse, offset to avoid cursor
             const offsetX = 15;
@@ -858,6 +865,11 @@
                 scoreEl.textContent = currentScore.toFixed(2);
             }
             render();
+
+            // Refresh tooltip if currently hovering over a state
+            if (hoveredState && stateTooltip.style.display !== 'none') {
+                updateTooltipContent(hoveredState);
+            }
 
             const prog = (data.generation / data.total) * 100;
             progressBar.style.width = prog + '%';
