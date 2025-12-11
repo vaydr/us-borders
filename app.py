@@ -166,7 +166,11 @@ def start_algorithm(data):
     iterations = data.get('generations', 25000)
     render_every = data.get('render_every', 50)
     target = data.get('target', 'Republican')  # 'Republican', 'Democratic', or 'Tie'
-    print(f"Starting {iterations} iterations, updating every {render_every}, target: {target}")
+    mode = data.get('mode', 'standard')  # 'standard' or 'follow_the_leader'
+    print(f"Starting {iterations} iterations, updating every {render_every}, target: {target}, mode: {mode}")
+
+    # Reset follow-the-leader state at start
+    my_sim.reset_follow_the_leader()
 
     def run():
         global is_running
@@ -177,7 +181,7 @@ def start_algorithm(data):
                 if not is_running:
                     break
 
-                my_sim.iteration_greedy(target)
+                my_sim.iteration_greedy(target, mode)
 
                 # Send color update every N iterations
                 if (i + 1) % render_every == 0 or (i + 1) == iterations:
@@ -231,6 +235,7 @@ def reset_algorithm():
         my_sim.state_to_counties[state] = set(counties)
 
     my_sim.compute_state_to_bordering_counties()
+    my_sim.reset_follow_the_leader()
 
     print("Algorithm reset to initial state")
     emit('reset_complete', {'colors': get_county_colors()})

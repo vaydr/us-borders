@@ -144,41 +144,141 @@ def compute_state_to_partisan_lean():
         state_to_ev[state] = int(round(population * 538 / total_population))
     
 def _reward_score(lean:float, tie_mode:bool = False):
-    #lean is between -1 and 1
-    if lean == 0:
-        return 10000 if tie_mode else 0
-    else:
-        return 1/(10 * lean**2) if tie_mode else 1/(10 * lean)
+    if tie_mode:
+        return (1-abs(lean))
+    sign = 1 if lean > 0 else -1 if lean < 0 else 0
+    return sign - lean
+
 def get_configuration_score(winner: str):
-    global state_to_partisan_lean
+    global state_to_partisan_lean, state_to_ev
     score = 0
     if winner != "Tie":
         multiplier = 1 if winner == "Republican" else -1
-        for _, partisan_lean in state_to_partisan_lean.items():
-            score += _reward_score(partisan_lean * multiplier, tie_mode=False)
+        for state, partisan_lean in state_to_partisan_lean.items():
+            score += state_to_ev[state] * _reward_score(partisan_lean * multiplier, tie_mode=False)
     else:
-        for _, partisan_lean in state_to_partisan_lean.items():
-            score += _reward_score(partisan_lean, tie_mode=True)
+        for state, partisan_lean in state_to_partisan_lean.items():
+            score += state_to_ev[state] * _reward_score(partisan_lean, tie_mode=True)
 
     return score
 
-def iteration_greedy(target='Republican'):
+# Track state for follow-the-leader mode
+follow_the_leader_state = None
+last_moved_county = None
+
+# Track frontier for BFS/DFS modes
+traversal_frontier = []  # list of counties to explore
+traversal_visited = set()  # counties already taken
+
+
+def reset_follow_the_leader():
+    """Reset the leader state and traversal state."""
+    global follow_the_leader_state, last_moved_county, traversal_frontier, traversal_visited
+    follow_the_leader_state = None
+    last_moved_county = None
+    traversal_frontier = []
+    traversal_visited = set()
+
+
+def sample_adjacent_county_excluding(state, exclude_county):
+    """Sample adjacent county but exclude a specific one to prevent ping-pong."""
+    candidates = [c for c in state_to_bordering_counties[state] if c != exclude_county]
+    if not candidates:
+        return None
+
+    def _number_of_adjacent_states(county):
+        return len(set(county_to_state[neighbor] for neighbor in county_to_neighbors[county]))
+
+    county_logits = np.array([1/(_number_of_adjacent_states(county) ** 2) for county in candidates])
+    county_weights = np.exp(county_logits) / np.sum(np.exp(county_logits))
+    return np.random.choice(candidates, p=county_weights)
+
+
+def iteration_greedy(target='Republican', mode='standard'):
     """
-    Stochastic hill-climb: try a random valid move, accept if it improves score.
-    Much faster than evaluating all moves.
+    Stochastic hill-climb with different traversal modes.
     target: 'Republican', 'Democratic', or 'Tie'
+    mode: 'standard', 'follow_the_leader', 'bfs', or 'dfs'
     """
+    global follow_the_leader_state, last_moved_county, traversal_frontier, traversal_visited
     import random
 
     compute_state_to_partisan_lean()
     current_score = get_configuration_score(target)
 
-    # Use existing sampling functions to get a candidate move
-    state_to_grow = sample_state()
-    if state_to_grow not in state_to_bordering_counties or not state_to_bordering_counties[state_to_grow]:
-        return False
+    pivot_county = None
+    state_to_grow = None
 
-    pivot_county = sample_adjacent_county(state_to_grow)
+    if mode in ['bfs', 'dfs']:
+        # BFS/DFS: traverse along borders
+        # If frontier empty, pick a random starting state and seed frontier
+        if not traversal_frontier:
+            state_to_grow = sample_state()
+            if state_to_grow in state_to_bordering_counties and state_to_bordering_counties[state_to_grow]:
+                # Seed with all border counties of this state
+                traversal_frontier = list(state_to_bordering_counties[state_to_grow])
+                random.shuffle(traversal_frontier)
+                traversal_visited = set()
+
+        # Try to get next county from frontier
+        while traversal_frontier:
+            if mode == 'bfs':
+                candidate = traversal_frontier.pop(0)  # FIFO for BFS
+            else:  # dfs
+                candidate = traversal_frontier.pop()  # LIFO for DFS
+
+            # Skip if already taken or no longer a valid target
+            if candidate in traversal_visited:
+                continue
+            candidate_state = county_to_state.get(candidate)
+            if candidate_state is None:
+                continue
+
+            # Find a state that can take this county (one of its neighbors)
+            for neighbor in county_to_neighbors.get(candidate, []):
+                neighbor_state = county_to_state.get(neighbor)
+                if neighbor_state and neighbor_state != candidate_state:
+                    pivot_county = candidate
+                    state_to_grow = neighbor_state
+                    break
+
+            if pivot_county:
+                break
+
+        if not pivot_county:
+            # Frontier exhausted, reset for next time
+            traversal_frontier = []
+            traversal_visited = set()
+            return False
+
+    elif mode == 'follow_the_leader':
+        # Follow-the-leader: loser becomes next grower
+        if follow_the_leader_state is not None:
+            state_to_grow = follow_the_leader_state
+        else:
+            state_to_grow = sample_state()
+
+        if state_to_grow not in state_to_bordering_counties or not state_to_bordering_counties[state_to_grow]:
+            follow_the_leader_state = None
+            last_moved_county = None
+            return False
+
+        # Exclude the county that was just moved to prevent ping-pong
+        if last_moved_county is not None:
+            pivot_county = sample_adjacent_county_excluding(state_to_grow, last_moved_county)
+            if pivot_county is None:
+                follow_the_leader_state = None
+                last_moved_county = None
+                return False
+        else:
+            pivot_county = sample_adjacent_county(state_to_grow)
+
+    else:  # standard mode
+        state_to_grow = sample_state()
+        if state_to_grow not in state_to_bordering_counties or not state_to_bordering_counties[state_to_grow]:
+            return False
+        pivot_county = sample_adjacent_county(state_to_grow)
+
     from_state = county_to_state[pivot_county]
 
     # Try the move
@@ -200,7 +300,17 @@ def iteration_greedy(target='Republican'):
     new_score = get_configuration_score(target)
 
     # Accept if better, otherwise undo
-    if new_score >= current_score:
+    if new_score >= current_score and _population_conditions_met():
+        # Mode-specific bookkeeping on success
+        if mode == 'follow_the_leader':
+            follow_the_leader_state = from_state
+            last_moved_county = pivot_county
+        elif mode in ['bfs', 'dfs']:
+            traversal_visited.add(pivot_county)
+            # Add neighbors of the taken county to frontier (expand the wave)
+            for neighbor in county_to_neighbors.get(pivot_county, []):
+                if neighbor not in traversal_visited and county_to_state.get(neighbor) != state_to_grow:
+                    traversal_frontier.append(neighbor)
         return True
     else:
         # Undo the move
@@ -211,6 +321,14 @@ def iteration_greedy(target='Republican'):
         compute_state_to_partisan_lean()
         return False
 
+def _population_conditions_met():
+    global state_to_counties, county_to_population
+    for _, counties in state_to_counties.items():
+        state_pop = sum(county_to_population[county] for county in counties)
+        if state_pop < 100000:
+            return False
+        
+    return True
 
 def compute_election_winner():
     global state_to_partisan_lean

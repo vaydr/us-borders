@@ -98,8 +98,7 @@
         }
         #mapCanvas {
             border-radius: 8px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-            background: #fff;
+            background: #ffffff00;
         }
         .loading { text-align: center; padding: 50px; }
         .spinner {
@@ -178,36 +177,26 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>US Border Redistricting</h1>
-            <p>Watch state borders evolve in real-time</p>
-        </div>
 
         <div class="main">
             <div class="controls">
-                <div class="info">
-                    <p><strong>How it works:</strong></p>
-                    <p>Each iteration, one state absorbs an adjacent county. Colors indicate state groupings.</p>
-                </div>
 
                 <div class="control-group">
                     <label>Iterations</label>
-                    <input type="range" id="iterations" min="100" max="150000" value="5000" step="100">
-                    <div class="range-value"><span id="iterationsValue">5000</span></div>
+                    <input type="number" id="iterations" min="100" max="150000" value="5000" step="100" style="width: 100%; padding: 10px; background: #1a1a2e; border: 1px solid #444; border-radius: 5px; color: #fff; font-size: 14px;">
                 </div>
 
                 <div class="control-group">
                     <label>Update Every N Iterations</label>
-                    <input type="range" id="renderEvery" min="1" max="500" value="25" step="1">
-                    <div class="range-value"><span id="renderEveryValue">25</span></div>
+                    <input type="number" id="renderEvery" min="1" max="500" value="25" step="1" style="width: 100%; padding: 10px; background: #1a1a2e; border: 1px solid #444; border-radius: 5px; color: #fff; font-size: 14px;">
                 </div>
 
                 <div class="control-group">
                     <label>Color Mode</label>
                     <select id="colorModeSelect" style="width: 100%; padding: 10px; background: #1a1a2e; border: 1px solid #444; border-radius: 5px; color: #fff; font-size: 14px;">
-                        <option value="state">Unique State Colors</option>
                         <option value="county-partisan">County Partisan Lean</option>
                         <option value="state-partisan">State Avg Partisan Lean</option>
+                        <option value="state">Unique State Colors</option>
                     </select>
                 </div>
 
@@ -217,6 +206,16 @@
                         <option value="Republican">Republican Win</option>
                         <option value="Democratic">Democratic Win</option>
                         <option value="Tie">Tie</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>Algorithm Mode</label>
+                    <select id="modeSelect" style="width: 100%; padding: 10px; background: #1a1a2e; border: 1px solid #444; border-radius: 5px; color: #fff; font-size: 14px;">
+                        <option value="standard">Standard (Random)</option>
+                        <option value="follow_the_leader">Follow the Leader</option>
+                        <option value="bfs">BFS</option>
+                        <option value="dfs">DFS</option>
                     </select>
                 </div>
 
@@ -291,7 +290,7 @@
         let population = {};   // geoid -> population
         let stateLeans = {};   // state -> avg partisan lean
         let countyToState = {}; // geoid -> state
-        let colorMode = 'state'; // 'state', 'county-partisan', or 'state-partisan'
+        let colorMode = 'county-partisan'; // 'state', 'county-partisan', or 'state-partisan'
         let election = { winner: '-', r_ev: 0, d_ev: 0 };
         let bounds = null;
         let transform = null;
@@ -315,6 +314,7 @@
         const iterationsInput = document.getElementById('iterations');
         const renderEveryInput = document.getElementById('renderEvery');
         const targetSelect = document.getElementById('targetSelect');
+        const modeSelect = document.getElementById('modeSelect');
         let currentScore = 0;
 
         iterationsInput.oninput = () => {
@@ -533,7 +533,7 @@
         function render() {
             const t0 = performance.now();
 
-            ctx.fillStyle = '#ffffff';
+            ctx.fillStyle = '#252542';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // Pass 1: Fill all counties
@@ -610,8 +610,8 @@
                 console.log(`Loaded ${geojson.features.length} counties, ${palette.length} colors, ${Object.keys(neighbors).length} neighbor entries, ${Object.keys(partisanLean).length} partisan lean values, ${Object.keys(stateLeans).length} state leans`);
 
                 // Setup canvas
-                const width = 1200;
-                const height = 750;
+                const width = 1100;
+                const height = 500;
                 canvas.width = width;
                 canvas.height = height;
 
@@ -689,11 +689,13 @@
             socket.emit('start_algorithm', {
                 generations: parseInt(iterationsInput.value),
                 render_every: parseInt(renderEveryInput.value),
-                target: targetSelect.value
+                target: targetSelect.value,
+                mode: modeSelect.value
             });
             startBtn.disabled = true;
             stopBtn.disabled = false;
-            statusText.textContent = 'Running (' + targetSelect.value + ')';
+            const modeLabel = modeSelect.value === 'follow_the_leader' ? 'FTL' : 'Std';
+            statusText.textContent = 'Running (' + targetSelect.value + ', ' + modeLabel + ')';
             stats.style.display = 'grid';
         };
 
