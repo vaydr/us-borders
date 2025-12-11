@@ -1125,8 +1125,10 @@
         let countyToState = {}; // geoid -> state
         let colorMode = 'county-partisan'; // 'state', 'county-partisan', or 'state-partisan'
         let previousCountyToState = {}; // Previous state assignments for diff detection
-        let changedCounties = new Set(); // Counties that changed since last render
+        let countyChangeTime = {}; // geoid -> timestamp when county last changed (for fade animation)
         let diffMode = false; // Whether diff highlighting is enabled
+        let diffAnimationFrame = null; // Animation frame ID for diff fade effect
+        const DIFF_FADE_DURATION = 1000; // Fade duration in ms
         let election = { winner: '-', r_ev: 0, d_ev: 0 };
         let bounds = null;
         let transform = null;
@@ -1832,6 +1834,14 @@
 
         const getDiffMode = setupKwaySelector('diffKway', (value) => {
             diffMode = (value === 'on');
+            if (!diffMode) {
+                // Clear animations when turning off
+                countyChangeTime = {};
+                if (diffAnimationFrame) {
+                    cancelAnimationFrame(diffAnimationFrame);
+                    diffAnimationFrame = null;
+                }
+            }
             render();
         });
 
@@ -2155,15 +2165,13 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // Pass 1: Fill all counties
+            const now = performance.now();
             for (const feature of geojson.features) {
                 const geoid = feature.properties.GEOID;
                 const path = countyPaths[geoid];
                 let color;
 
-                // Check if this county changed and diff mode is on
-                if (diffMode && changedCounties.has(geoid)) {
-                    color = '#ffcc00'; // Bright gold highlight
-                } else if (colorMode === 'county-partisan') {
+                if (colorMode === 'county-partisan') {
                     // Each county colored by its own partisan lean
                     const lean = partisanLean[geoid];
                     color = lean !== undefined ? leanToColor(lean * 2) : '#cccccc';
@@ -2180,6 +2188,16 @@
 
                 ctx.fillStyle = color;
                 ctx.fill(path);
+
+                // Overlay yellow fade for diff mode
+                if (diffMode && countyChangeTime[geoid]) {
+                    const elapsed = now - countyChangeTime[geoid];
+                    if (elapsed < DIFF_FADE_DURATION) {
+                        const alpha = 1 - (elapsed / DIFF_FADE_DURATION);
+                        ctx.fillStyle = `rgba(255, 204, 0, ${alpha})`;
+                        ctx.fill(path);
+                    }
+                }
             }
 
             // Pass 2: Draw thin county borders
@@ -2206,6 +2224,29 @@
                 }
             }
 
+        }
+
+        // Animation loop for diff fade effect
+        function diffAnimationLoop() {
+            const now = performance.now();
+            let hasActiveAnimations = false;
+
+            // Check if any animations are still active and clean up expired ones
+            for (const geoid of Object.keys(countyChangeTime)) {
+                const elapsed = now - countyChangeTime[geoid];
+                if (elapsed < DIFF_FADE_DURATION) {
+                    hasActiveAnimations = true;
+                } else {
+                    delete countyChangeTime[geoid]; // Clean up expired
+                }
+            }
+
+            if (hasActiveAnimations) {
+                render();
+                diffAnimationFrame = requestAnimationFrame(diffAnimationLoop);
+            } else {
+                diffAnimationFrame = null;
+            }
         }
 
         // Initialize
@@ -2285,13 +2326,18 @@
         // Socket handlers
         socket.on('color_update', (data) => {
             // Detect changed counties for diff mode
+            // Track changed counties with timestamps for fade animation
             if (data.countyToState && diffMode) {
-                changedCounties.clear();
+                const now = performance.now();
                 for (const [geoid, newState] of Object.entries(data.countyToState)) {
                     const oldState = previousCountyToState[geoid];
                     if (oldState !== undefined && oldState !== newState) {
-                        changedCounties.add(geoid);
+                        countyChangeTime[geoid] = now; // Reset/set timestamp
                     }
+                }
+                // Start animation loop if not already running
+                if (!diffAnimationFrame) {
+                    diffAnimationLoop();
                 }
             }
             if (data.countyToState) {
@@ -2382,7 +2428,11 @@
             if (data.countyToState) {
                 countyToState = data.countyToState;
                 previousCountyToState = { ...countyToState };
-                changedCounties.clear();
+                countyChangeTime = {}; // Clear all fade animations
+                if (diffAnimationFrame) {
+                    cancelAnimationFrame(diffAnimationFrame);
+                    diffAnimationFrame = null;
+                }
                 updateStateCountyCounts();
             }
             if (data.stateLeans) stateLeans = data.stateLeans;
