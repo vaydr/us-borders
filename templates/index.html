@@ -114,21 +114,202 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        .stats {
+        /* Brainrot Dashboard */
+        .viz-container { position: relative; width: 100%; }
+        
+        .iteration-overlay {
+            position: absolute;
+            top: 10px;
+            left: 15px;
+            z-index: 100;
+            font-family: 'Courier New', monospace;
+            background: rgba(0,0,0,0.6);
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #333;
+        }
+        .iteration-overlay .iter-label {
+            font-size: 9px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .iteration-overlay .iter-value {
+            font-size: 24px;
+            color: #00d4ff;
+            text-shadow: 0 0 10px rgba(0,212,255,0.5);
+            font-weight: bold;
+        }
+        
+        .dashboard {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 15px;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
             margin-top: 15px;
             width: 100%;
         }
-        .stat {
-            background: #1a1a2e;
-            padding: 12px;
-            border-radius: 5px;
+        
+        .dash-card {
+            background: linear-gradient(135deg, #1a1a2e 0%, #252542 100%);
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            position: relative;
+            overflow: hidden;
+        }
+        .dash-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent, #00d4ff), transparent);
+            opacity: 0.5;
+        }
+        .dash-card.pulse::before {
+            animation: pulse-glow 0.5s ease-out;
+        }
+        @keyframes pulse-glow {
+            0% { opacity: 1; height: 4px; }
+            100% { opacity: 0.5; height: 2px; }
+        }
+        
+        .dash-label {
+            font-size: 10px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+        .dash-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #fff;
+            transition: all 0.3s ease;
+        }
+        .dash-value.dem { color: #3b82f6; }
+        .dash-value.rep { color: #ef4444; }
+        .dash-value.neutral { color: #a855f7; }
+        
+        .dash-subtitle {
+            font-size: 11px;
+            color: #555;
+            margin-top: 2px;
+        }
+        
+        /* Sparkline */
+        .sparkline {
+            height: 30px;
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+            margin-top: 8px;
+        }
+        .spark-bar {
+            flex: 1;
+            background: linear-gradient(to top, #00d4ff, #0088ff);
+            border-radius: 2px 2px 0 0;
+            min-height: 2px;
+            transition: height 0.2s ease;
+            opacity: 0.7;
+        }
+        .spark-bar:last-child { opacity: 1; }
+        
+        /* EV Bar Enhanced */
+        .ev-section { grid-column: span 2; }
+        .ev-bar-enhanced {
+            display: flex;
+            height: 40px;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #333;
+            position: relative;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .ev-dem-bar {
+            background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+            height: 100%;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            padding-left: 10px;
+            font-weight: 700;
+            font-size: 14px;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            box-shadow: 2px 0 10px rgba(59,130,246,0.5);
+        }
+        .ev-rep-bar {
+            background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+            height: 100%;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            font-weight: 700;
+            font-size: 14px;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            box-shadow: -2px 0 10px rgba(239,68,68,0.5);
+        }
+        .ev-center-line {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: rgba(255,255,255,0.3);
+            transform: translateX(-50%);
+        }
+        .ev-270-marker {
+            position: absolute;
+            top: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            color: #666;
+        }
+        
+        /* Histogram */
+        .histogram {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            height: 40px;
+            gap: 1px;
+            margin-top: 5px;
+        }
+        .hist-bar {
+            width: 8px;
+            border-radius: 2px 2px 0 0;
+            min-height: 2px;
+            transition: height 0.3s ease, background 0.3s ease;
+        }
+        
+        /* Mini stat row */
+        .mini-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #333;
+        }
+        .mini-stat {
             text-align: center;
         }
-        .stat-label { font-size: 11px; color: #aaa; text-transform: uppercase; margin-bottom: 3px; }
-        .stat-value { font-size: 22px; font-weight: 700; color: #00d4ff; }
+        .mini-stat-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #00d4ff;
+        }
+        .mini-stat-label {
+            font-size: 9px;
+            color: #555;
+            text-transform: uppercase;
+        }
         .info {
             background: #1a1a2e;
             padding: 15px;
@@ -285,29 +466,82 @@
                     <div class="spinner"></div>
                     <p>Loading map data...</p>
                 </div>
-                <canvas id="mapCanvas" style="display: none;"></canvas>
-                <div class="stats" id="stats" style="display: none;">
-                    <div class="stat">
-                        <div class="stat-label">Iteration</div>
-                        <div class="stat-value" id="iteration">0</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-label">Winner</div>
-                        <div class="stat-value" id="winner">-</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-label">Score</div>
-                        <div class="stat-value" id="score">0</div>
+                <div class="viz-container">
+                    <canvas id="mapCanvas" style="display: none;"></canvas>
+                    <div class="iteration-overlay" id="iterOverlay" style="display: none;">
+                        <div class="iter-label">ITERATION</div>
+                        <div class="iter-value" id="iteration">0</div>
                     </div>
                 </div>
-                <div class="election-results" id="electionResults" style="display: none;">
-                    <div class="ev-bar">
-                        <div class="ev-dem" id="evDemBar"></div>
-                        <div class="ev-rep" id="evRepBar"></div>
+                
+                <div class="dashboard" id="dashboard" style="display: none;">
+                    <!-- EV Bar - Full Width -->
+                    <div class="dash-card ev-section" style="--accent: #a855f7;">
+                        <div class="dash-label">Electoral College</div>
+                        <div class="ev-270-marker">270 to win</div>
+                        <div class="ev-bar-enhanced">
+                            <div class="ev-dem-bar" id="evDemBar"><span id="evDem">0</span></div>
+                            <div class="ev-rep-bar" id="evRepBar"><span id="evRep">0</span></div>
+                            <div class="ev-center-line"></div>
+                        </div>
+                        <div class="mini-stats">
+                            <div class="mini-stat">
+                                <div class="mini-stat-value" id="winner" style="color: #a855f7;">-</div>
+                                <div class="mini-stat-label">Projected</div>
+                            </div>
+                            <div class="mini-stat">
+                                <div class="mini-stat-value" id="evMargin">0</div>
+                                <div class="mini-stat-label">EV Margin</div>
+                            </div>
+                            <div class="mini-stat">
+                                <div class="mini-stat-value" id="stateCount">48</div>
+                                <div class="mini-stat-label">States</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="ev-labels">
-                        <span class="ev-dem-label"><span id="evDem">0</span> Dem</span>
-                        <span class="ev-rep-label"><span id="evRep">0</span> Rep</span>
+                    
+                    <!-- Swing States -->
+                    <div class="dash-card" id="swingCard" style="--accent: #fbbf24;">
+                        <div class="dash-label">Swing States</div>
+                        <div class="dash-value" id="swingStates">0</div>
+                        <div class="dash-subtitle">within ±5% lean</div>
+                        <div class="sparkline" id="swingSparkline"></div>
+                    </div>
+                    
+                    <!-- EV Margin -->
+                    <div class="dash-card" id="fairnessCard" style="--accent: #a855f7;">
+                        <div class="dash-label">Electoral Efficiency</div>
+                        <div class="dash-value" id="fairnessScore">0%</div>
+                        <div class="dash-subtitle">EV% minus PopVote%</div>
+                        <div class="sparkline" id="fairnessSparkline"></div>
+                    </div>
+                    
+                    <!-- Partisan Distribution Histogram -->
+                    <div class="dash-card" style="--accent: #a855f7; grid-column: span 2;">
+                        <div class="dash-label">State Partisan Distribution</div>
+                        <div class="histogram" id="partisanHistogram"></div>
+                        <div class="mini-stats" style="border: none; padding-top: 5px;">
+                            <div class="mini-stat">
+                                <div class="mini-stat-value dem" id="safeBlue">0</div>
+                                <div class="mini-stat-label">Safe D</div>
+                            </div>
+                            <div class="mini-stat">
+                                <div class="mini-stat-value" style="color: #60a5fa;" id="leanBlue">0</div>
+                                <div class="mini-stat-label">Lean D</div>
+                            </div>
+                            <div class="mini-stat">
+                                <div class="mini-stat-value" style="color: #a855f7;" id="tossup">0</div>
+                                <div class="mini-stat-label">Tossup</div>
+                            </div>
+                            <div class="mini-stat">
+                                <div class="mini-stat-value" style="color: #f87171;" id="leanRed">0</div>
+                                <div class="mini-stat-label">Lean R</div>
+                            </div>
+                            <div class="mini-stat">
+                                <div class="mini-stat-value rep" id="safeRed">0</div>
+                                <div class="mini-stat-label">Safe R</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -350,15 +584,183 @@
         const statusText = document.getElementById('statusText');
         const progressBar = document.getElementById('progressBar');
         const progressText = document.getElementById('progressText');
-        const stats = document.getElementById('stats');
+        // Dashboard elements
         const iterationEl = document.getElementById('iteration');
+        const iterOverlay = document.getElementById('iterOverlay');
+        const dashboard = document.getElementById('dashboard');
         const winnerEl = document.getElementById('winner');
-        const scoreEl = document.getElementById('score');
-        const electionResults = document.getElementById('electionResults');
         const evDemBar = document.getElementById('evDemBar');
         const evRepBar = document.getElementById('evRepBar');
         const evDemEl = document.getElementById('evDem');
         const evRepEl = document.getElementById('evRep');
+        const evMarginEl = document.getElementById('evMargin');
+        const stateCountEl = document.getElementById('stateCount');
+        const swingStatesEl = document.getElementById('swingStates');
+        const swingCard = document.getElementById('swingCard');
+        const fairnessScoreEl = document.getElementById('fairnessScore');
+        const fairnessCard = document.getElementById('fairnessCard');
+        const partisanHistogram = document.getElementById('partisanHistogram');
+        const swingSparkline = document.getElementById('swingSparkline');
+        const fairnessSparkline = document.getElementById('fairnessSparkline');
+        const safeBlueEl = document.getElementById('safeBlue');
+        const leanBlueEl = document.getElementById('leanBlue');
+        const tossupEl = document.getElementById('tossup');
+        const leanRedEl = document.getElementById('leanRed');
+        const safeRedEl = document.getElementById('safeRed');
+        
+        // History for sparklines (last 20 values)
+        const SPARKLINE_LENGTH = 20;
+        let swingHistory = [];
+        let fairnessHistory = [];
+
+        // Calculate dashboard metrics
+        function calculateDashboardMetrics() {
+            const states = Object.keys(stateLeans);
+            let swingCount = 0;
+            let safeD = 0, leanD = 0, tossup = 0, leanR = 0, safeR = 0;
+
+            for (const state of states) {
+                const lean = stateLeans[state] || 0;
+                const absLean = Math.abs(lean);
+
+                if (absLean <= 0.05) {
+                    swingCount++;
+                    tossup++;
+                } else if (lean < -0.15) {
+                    safeD++;
+                } else if (lean < -0.05) {
+                    leanD++;
+                } else if (lean > 0.15) {
+                    safeR++;
+                } else if (lean > 0.05) {
+                    leanR++;
+                }
+            }
+
+            // EV Margin: (winner EV %) - (winner popular vote %)
+            // Popular vote is fixed based on county partisan lean * population
+            let demPopVote = 0, repPopVote = 0;
+            for (const [geoid, lean] of Object.entries(partisanLean)) {
+                const pop = population[geoid] || 0;
+                // lean > 0 means R, lean < 0 means D
+                // Approximate: if lean is 0.1, then 55% voted R, 45% voted D
+                const rPct = (1 + lean) / 2;
+                const dPct = 1 - rPct;
+                repPopVote += pop * rPct;
+                demPopVote += pop * dPct;
+            }
+            const totalPopVote = demPopVote + repPopVote;
+            const demPopPct = totalPopVote > 0 ? (demPopVote / totalPopVote) * 100 : 50;
+            const repPopPct = totalPopVote > 0 ? (repPopVote / totalPopVote) * 100 : 50;
+
+            // EV percentages from election object
+            const totalEV = election.d_ev + election.r_ev;
+            const demEVPct = totalEV > 0 ? (election.d_ev / totalEV) * 100 : 50;
+            const repEVPct = totalEV > 0 ? (election.r_ev / totalEV) * 100 : 50;
+
+            // EV margin = winner's EV% - winner's pop%
+            // Positive means EV overperformance, negative means underperformance
+            const evWinner = election.d_ev > election.r_ev ? 'dem' : election.r_ev > election.d_ev ? 'rep' : 'tie';
+            let evMarginValue = 0;
+            if (evWinner === 'dem') {
+                evMarginValue = demEVPct - demPopPct;
+            } else if (evWinner === 'rep') {
+                evMarginValue = repEVPct - repPopPct;
+            }
+
+            return { swingCount, evMarginValue, evWinner, categories: { safeD, leanD, tossup, leanR, safeR }, stateCount: states.length };
+        }
+
+        // Update sparkline
+        function updateSparkline(container, history, maxVal) {
+            if (!container) return;
+            const max = maxVal || Math.max(...history, 1);
+            container.innerHTML = history.map(v =>
+                `<div class="spark-bar" style="height: ${Math.max(2, (v / max) * 30)}px"></div>`
+            ).join('');
+        }
+
+        // Update sparkline with party color
+        function updateSparklineColored(container, history, maxVal, winner) {
+            if (!container) return;
+            const max = maxVal || Math.max(...history.map(Math.abs), 1);
+            const color = winner === 'dem' ? 'linear-gradient(to top, #2563eb, #3b82f6)' :
+                          winner === 'rep' ? 'linear-gradient(to top, #dc2626, #ef4444)' :
+                          'linear-gradient(to top, #7c3aed, #a855f7)';
+            container.innerHTML = history.map(v =>
+                `<div class="spark-bar" style="height: ${Math.max(2, (Math.abs(v) / max) * 30)}px; background: ${color};"></div>`
+            ).join('');
+        }
+
+        // Update partisan histogram
+        function updateHistogram() {
+            if (!partisanHistogram) return;
+            const bins = new Array(21).fill(0);
+
+            for (const state of Object.keys(stateLeans)) {
+                const lean = stateLeans[state] || 0;
+                const binIdx = Math.min(20, Math.max(0, Math.floor((lean + 1) * 10)));
+                bins[binIdx]++;
+            }
+
+            const maxBin = Math.max(...bins, 1);
+
+            partisanHistogram.innerHTML = bins.map((count, i) => {
+                const lean = (i - 10) / 10;
+                let color;
+                if (lean < -0.15) color = '#2563eb';
+                else if (lean < -0.05) color = '#60a5fa';
+                else if (lean < 0.05) color = '#a855f7';
+                else if (lean < 0.15) color = '#f87171';
+                else color = '#dc2626';
+
+                const height = Math.max(2, (count / maxBin) * 40);
+                return `<div class="hist-bar" style="height: ${height}px; background: ${color};"></div>`;
+            }).join('');
+        }
+
+        // Update entire dashboard
+        function updateDashboard() {
+            const metrics = calculateDashboardMetrics();
+
+            // Update swing states
+            if (swingStatesEl) swingStatesEl.textContent = metrics.swingCount;
+            swingHistory.push(metrics.swingCount);
+            if (swingHistory.length > SPARKLINE_LENGTH) swingHistory.shift();
+            updateSparklineColored(swingSparkline, swingHistory, 20, metrics.evWinner);
+
+            // Pulse effect
+            if (swingCard && swingHistory.length > 1 && swingHistory[swingHistory.length - 1] !== swingHistory[swingHistory.length - 2]) {
+                swingCard.classList.add('pulse');
+                setTimeout(() => swingCard.classList.remove('pulse'), 500);
+            }
+
+            // Update EV margin (EV% - PopVote%)
+            if (fairnessScoreEl) {
+                const sign = metrics.evMarginValue >= 0 ? '+' : '';
+                fairnessScoreEl.textContent = sign + metrics.evMarginValue.toFixed(1) + '%';
+                fairnessScoreEl.style.color = metrics.evWinner === 'dem' ? '#3b82f6' : 
+                                               metrics.evWinner === 'rep' ? '#ef4444' : '#a855f7';
+            }
+            fairnessHistory.push(metrics.evMarginValue);
+            if (fairnessHistory.length > SPARKLINE_LENGTH) fairnessHistory.shift();
+            // Color sparkline by winner
+            updateSparklineColored(fairnessSparkline, fairnessHistory, 30, metrics.evWinner);
+
+            // Update histogram
+            updateHistogram();
+
+            // Update category counts
+            if (safeBlueEl) safeBlueEl.textContent = metrics.categories.safeD;
+            if (leanBlueEl) leanBlueEl.textContent = metrics.categories.leanD;
+            if (tossupEl) tossupEl.textContent = metrics.categories.tossup;
+            if (leanRedEl) leanRedEl.textContent = metrics.categories.leanR;
+            if (safeRedEl) safeRedEl.textContent = metrics.categories.safeR;
+
+            // Update state count
+            if (stateCountEl) stateCountEl.textContent = metrics.stateCount;
+        }
+
         const iterationsInput = document.getElementById('iterations');
         const renderEveryInput = document.getElementById('renderEvery');
         const targetSelect = document.getElementById('targetSelect');
@@ -393,20 +795,21 @@
             const demPct = totalEV > 0 ? (election.d_ev / totalEV) * 100 : 50;
             const repPct = totalEV > 0 ? (election.r_ev / totalEV) * 100 : 50;
 
-            evDemBar.style.width = demPct + '%';
-            evRepBar.style.width = repPct + '%';
-            evDemEl.textContent = election.d_ev;
-            evRepEl.textContent = election.r_ev;
+            if (evDemBar) evDemBar.style.width = demPct + '%';
+            if (evRepBar) evRepBar.style.width = repPct + '%';
+            if (evDemEl) evDemEl.textContent = election.d_ev;
+            if (evRepEl) evRepEl.textContent = election.r_ev;
+
+            // Update EV margin
+            const margin = Math.abs(election.d_ev - election.r_ev);
+            if (evMarginEl) evMarginEl.textContent = margin;
 
             // Update winner display
-            winnerEl.textContent = election.winner;
-            winnerEl.className = 'stat-value';
-            if (election.winner === 'Democratic') {
-                winnerEl.classList.add('winner-dem');
-            } else if (election.winner === 'Republican') {
-                winnerEl.classList.add('winner-rep');
-            } else {
-                winnerEl.classList.add('winner-tie');
+            if (winnerEl) {
+                winnerEl.textContent = election.winner === 'Democratic' ? 'DEM' : 
+                                       election.winner === 'Republican' ? 'GOP' : 'TIE';
+                winnerEl.style.color = election.winner === 'Democratic' ? '#3b82f6' : 
+                                       election.winner === 'Republican' ? '#ef4444' : '#a855f7';
             }
         }
 
@@ -837,9 +1240,10 @@
                 // Show canvas
                 loadingState.style.display = 'none';
                 canvas.style.display = 'block';
-                stats.style.display = 'grid';
-                electionResults.style.display = 'block';
+                if (iterOverlay) iterOverlay.style.display = 'block';
+                if (dashboard) dashboard.style.display = 'grid';
                 updateElectionDisplay();
+                updateDashboard();
                 statusText.textContent = 'Ready';
 
             } catch (err) {
@@ -854,7 +1258,7 @@
             if (data.stateLeans) stateLeans = data.stateLeans;
             if (data.countyToState) {
                 countyToState = data.countyToState;
-                updateStateCountyCounts(); // Update county counts when states change
+                updateStateCountyCounts();
             }
             if (data.election) {
                 election = data.election;
@@ -862,9 +1266,11 @@
             }
             if (data.score !== undefined) {
                 currentScore = data.score;
-                scoreEl.textContent = currentScore.toFixed(2);
             }
             render();
+
+            // Update brainrot dashboard
+            updateDashboard();
 
             // Refresh tooltip if currently hovering over a state
             if (hoveredState && stateTooltip.style.display !== 'none') {
@@ -874,7 +1280,7 @@
             const prog = (data.generation / data.total) * 100;
             progressBar.style.width = prog + '%';
             progressText.textContent = `${data.generation} / ${data.total}`;
-            iterationEl.textContent = data.generation;
+            if (iterationEl) iterationEl.textContent = data.generation.toLocaleString();
         });
 
         socket.on('algorithm_started', (data) => {
@@ -907,7 +1313,6 @@
                              modeSelect.value === 'bfs' ? 'BFS' :
                              modeSelect.value === 'dfs' ? 'DFS' : 'Std';
             statusText.textContent = 'Running (' + targetSelect.value + ', ' + modeLabel + ')';
-            stats.style.display = 'grid';
         };
 
         stopBtn.onclick = () => {

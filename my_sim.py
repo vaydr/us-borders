@@ -17,14 +17,19 @@ YEAR = 2020
 for line in open('data/county_adjacency.txt'):
     #lines look like: County Name County, AB|69420|Other County, CD|69696|67676
     county_name_state, county_id, adjacent_county_name_state, adjacent_county_id, _ = line.split('|')
-    
+
     state = county_name_state.split(', ')[1]
     if state in ['AK', 'HI']: # skip Alaska and Hawaii as they are not part of the contiguous US
         continue
     adjacent_state = adjacent_county_name_state.split(', ')[1]
     state_to_counties.setdefault(state, set()).add(county_id)
-    county_to_neighbors.setdefault(county_id, set()).add(adjacent_county_id)
     county_to_state[county_id] = state
+
+    # Add bidirectional neighbor relationship (fixes CT and other asymmetric border issues)
+    county_to_neighbors.setdefault(county_id, set()).add(adjacent_county_id)
+    # Only add reverse if adjacent county is not in AK/HI
+    if adjacent_state not in ['AK', 'HI']:
+        county_to_neighbors.setdefault(adjacent_county_id, set()).add(county_id)
 
 
 def compute_state_to_bordering_counties():
