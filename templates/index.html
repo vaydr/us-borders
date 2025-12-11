@@ -744,15 +744,43 @@
             display: flex;
             align-items: flex-end;
             justify-content: center;
-            height: 40px;
-            gap: 1px;
-            margin-top: 5px;
+            height: 100%;
+            gap: 3px;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 0 10px;
         }
         .hist-bar {
-            width: 8px;
-            border-radius: 2px 2px 0 0;
+            flex: 1;
+            border-radius: 3px 3px 0 0;
             min-height: 2px;
             transition: height 0.3s ease, background 0.3s ease;
+        }
+        .partisan-card {
+            position: relative;
+            padding: 0 !important;
+            overflow: hidden;
+            min-height: 100px;
+        }
+        .partisan-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 10px 12px;
+            z-index: 1;
+        }
+        .partisan-overlay .dash-label,
+        .partisan-overlay .mini-stat-value,
+        .partisan-overlay .mini-stat-label {
+            mix-blend-mode: difference;
+            color: white;
         }
         
         /* Mini stat row */
@@ -1030,29 +1058,31 @@
                     </div>
                     
                     <!-- Partisan Distribution Histogram -->
-                    <div class="dash-card" style="--accent: #a855f7; grid-column: span 2;">
-                        <div class="dash-label">State Partisan Distribution</div>
+                    <div class="dash-card partisan-card" style="--accent: #a855f7; grid-column: span 2;">
                         <div class="histogram" id="partisanHistogram"></div>
-                        <div class="mini-stats" style="border: none; padding-top: 5px;">
-                            <div class="mini-stat">
-                                <div class="mini-stat-value dem" id="safeBlue">0</div>
-                                <div class="mini-stat-label">Safe D</div>
-                            </div>
-                            <div class="mini-stat">
-                                <div class="mini-stat-value" style="color: #60a5fa;" id="leanBlue">0</div>
-                                <div class="mini-stat-label">Lean D</div>
-                            </div>
-                            <div class="mini-stat">
-                                <div class="mini-stat-value" style="color: #a855f7;" id="tossup">0</div>
-                                <div class="mini-stat-label">Tossup</div>
-                            </div>
-                            <div class="mini-stat">
-                                <div class="mini-stat-value" style="color: #f87171;" id="leanRed">0</div>
-                                <div class="mini-stat-label">Lean R</div>
-                            </div>
-                            <div class="mini-stat">
-                                <div class="mini-stat-value rep" id="safeRed">0</div>
-                                <div class="mini-stat-label">Safe R</div>
+                        <div class="partisan-overlay">
+                            <div class="dash-label">State Partisan Distribution</div>
+                            <div class="mini-stats" style="border: none; padding: 0;">
+                                <div class="mini-stat">
+                                    <div class="mini-stat-value" id="safeBlue">0</div>
+                                    <div class="mini-stat-label">Safe D</div>
+                                </div>
+                                <div class="mini-stat">
+                                    <div class="mini-stat-value" id="leanBlue">0</div>
+                                    <div class="mini-stat-label">Lean D</div>
+                                </div>
+                                <div class="mini-stat">
+                                    <div class="mini-stat-value" id="tossup">0</div>
+                                    <div class="mini-stat-label">Tossup</div>
+                                </div>
+                                <div class="mini-stat">
+                                    <div class="mini-stat-value" id="leanRed">0</div>
+                                    <div class="mini-stat-label">Lean R</div>
+                                </div>
+                                <div class="mini-stat">
+                                    <div class="mini-stat-value" id="safeRed">0</div>
+                                    <div class="mini-stat-label">Safe R</div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1390,7 +1420,7 @@
                 else if (lean < 0.15) color = '#f87171';
                 else color = '#dc2626';
 
-                const height = Math.max(2, (count / maxBin) * 40);
+                const height = Math.max(2, (count / maxBin) * 90);
                 return `<div class="hist-bar" style="height: ${height}px; background: ${color};"></div>`;
             }).join('');
         }
