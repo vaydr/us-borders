@@ -1168,6 +1168,8 @@
         let swingHistory = []; // [{iter, value}, ...]
         let fairnessHistory = []; // [{iter, value}, ...]
         let bestScore = -Infinity;
+        let bestScoreInt = -Infinity; // Track best integer part for pulse
+        let bestEvMarginInt = -1; // Track best EV margin integer for pulse
 
         // Tipping point tracking
         let tippingPointCounts = {};  // state -> count of times as tipping point
@@ -1480,6 +1482,17 @@
             if (evMarginPctEl) {
                 evMarginPctEl.textContent = evMarginPctValue.toFixed(1) + '%';
                 evMarginPctEl.style.color = leanToColor(evMarginSigned * 3);
+
+                // Pulse on new whole percent milestone
+                const evMarginInt = Math.floor(evMarginPctValue);
+                if (evMarginInt > bestEvMarginInt) {
+                    bestEvMarginInt = evMarginInt;
+                    const fairnessCard = document.getElementById('fairnessCard');
+                    if (fairnessCard) {
+                        fairnessCard.classList.add('pulse');
+                        setTimeout(() => fairnessCard.classList.remove('pulse'), 500);
+                    }
+                }
             }
 
             // Update Electoral Efficiency (EV% - PopVote%)
@@ -1523,12 +1536,19 @@
             // Update score display and line chart
             if (currentScoreEl) {
                 currentScoreEl.textContent = currentScore.toFixed(2);
-                // Color based on improvement (higher is better)
+
+                // Pulse on new integer milestone
                 if (currentScore > bestScore) {
                     bestScore = currentScore;
-                    currentScoreEl.style.color = '#22c55e'; // green for new best
-                } else {
-                    currentScoreEl.style.color = '#00d4ff'; // cyan default
+                    const scoreInt = Math.floor(currentScore);
+                    if (scoreInt > bestScoreInt) {
+                        bestScoreInt = scoreInt;
+                        const scoreCard = document.getElementById('scoreCard');
+                        if (scoreCard) {
+                            scoreCard.classList.add('pulse');
+                            setTimeout(() => scoreCard.classList.remove('pulse'), 500);
+                        }
+                    }
                 }
             }
             if (scoreSubtitleEl) {
@@ -1796,14 +1816,14 @@
                 // -1 = pure blue, 0 = light purple
                 const t = Math.abs(lean); // 0 to 1
                 const r = Math.round(200 - t * 180);  // 200 -> 20
-                const g = Math.round(200 - t * 180);  // 200 -> 20
-                const b = Math.round(220 + t * 35);   // 220 -> 255
+                const g = Math.round(200 - t * 120);  // 200 -> 80
+                const b = Math.round(210 + t * 35);   // 220 -> 255
                 return `rgb(${r},${g},${b})`;
             } else {
                 // Republican (red) - lean is positive
                 // +1 = pure red, 0 = light purple
                 const t = lean; // 0 to 1
-                const r = Math.round(220 + t * 35);   // 220 -> 255
+                const r = Math.round(210 + t * 35);   // 220 -> 255
                 const g = Math.round(200 - t * 180);  // 200 -> 20
                 const b = Math.round(200 - t * 180);  // 200 -> 20
                 return `rgb(${r},${g},${b})`;
@@ -2320,6 +2340,8 @@
             // Reset all chart histories
             currentScore = 0;
             bestScore = -Infinity;
+            bestScoreInt = -Infinity;
+            bestEvMarginInt = -1;
             scoreHistory = [];
             swingHistory = [];
             fairnessHistory = [];
