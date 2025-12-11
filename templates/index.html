@@ -173,9 +173,50 @@
         .winner-dem { color: #3b82f6 !important; }
         .winner-rep { color: #ef4444 !important; }
         .winner-tie { color: #a855f7 !important; }
+
+        /* State tooltip */
+        #stateTooltip {
+            position: fixed;
+            background: rgba(26, 26, 46, 0.95);
+            border: 1px solid #444;
+            border-radius: 6px;
+            padding: 10px 14px;
+            pointer-events: none;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            min-width: 140px;
+        }
+        #stateTooltip .tooltip-name {
+            font-weight: 600;
+            font-size: 15px;
+            color: #fff;
+            margin-bottom: 6px;
+        }
+        #stateTooltip .tooltip-row {
+            font-size: 13px;
+            color: #aaa;
+            margin: 3px 0;
+        }
+        #stateTooltip .tooltip-row span {
+            color: #fff;
+            font-weight: 500;
+        }
+        #stateTooltip .lean-dem { color: #3b82f6 !important; }
+        #stateTooltip .lean-rep { color: #ef4444 !important; }
+        #stateTooltip .lean-even { color: #a855f7 !important; }
     </style>
 </head>
 <body>
+    <!-- State tooltip -->
+    <div id="stateTooltip">
+        <div class="tooltip-name" id="tooltipStateName"></div>
+        <div class="tooltip-row">Counties: <span id="tooltipCountyCount"></span></div>
+        <div class="tooltip-row">Population: <span id="tooltipPopulation"></span></div>
+        <div class="tooltip-row">Electoral Votes: <span id="tooltipEV"></span></div>
+        <div class="tooltip-row">Lean: <span id="tooltipLean"></span></div>
+    </div>
+
     <div class="container">
 
         <div class="main">
@@ -295,6 +336,13 @@
         let bounds = null;
         let transform = null;
 
+        // Tooltip data (computed once at init, updated on state changes)
+        let stateNames = {};        // state abbrev -> full state name
+        let stateCountyCounts = {}; // state abbrev -> number of counties
+        let stateEVs = {};          // state abbrev -> electoral votes
+        let statePopulations = {};  // state abbrev -> total population
+        let hoveredState = null;    // Currently hovered state
+
         // UI elements
         const startBtn = document.getElementById('startBtn');
         const stopBtn = document.getElementById('stopBtn');
@@ -316,6 +364,14 @@
         const targetSelect = document.getElementById('targetSelect');
         const modeSelect = document.getElementById('modeSelect');
         let currentScore = 0;
+
+        // Tooltip elements
+        const stateTooltip = document.getElementById('stateTooltip');
+        const tooltipStateName = document.getElementById('tooltipStateName');
+        const tooltipCountyCount = document.getElementById('tooltipCountyCount');
+        const tooltipPopulation = document.getElementById('tooltipPopulation');
+        const tooltipEV = document.getElementById('tooltipEV');
+        const tooltipLean = document.getElementById('tooltipLean');
 
         iterationsInput.oninput = () => {
             document.getElementById('iterationsValue').textContent = iterationsInput.value;
@@ -378,6 +434,136 @@
                 const b = Math.round(200 - t * 180);  // 200 -> 20
                 return `rgb(${r},${g},${b})`;
             }
+        }
+
+        // Format partisan lean for display
+        function formatLean(lean) {
+            if (lean === undefined || lean === null) return 'N/A';
+            const pct = Math.abs(lean * 100).toFixed(1);
+            if (Math.abs(lean) < 0.005) return 'EVEN';
+            return lean > 0 ? 'R+' + pct : 'D+' + pct;
+        }
+
+        // Get CSS class for lean
+        function getLeanClass(lean) {
+            if (lean === undefined || lean === null || Math.abs(lean) < 0.005) return 'lean-even';
+            return lean > 0 ? 'lean-rep' : 'lean-dem';
+        }
+
+        // Build state names and county counts from geojson
+        function buildStateData() {
+            stateNames = {};
+            stateCountyCounts = {};
+
+            // Extract from geojson properties
+            for (const feature of geojson.features) {
+                const props = feature.properties;
+                const stateAbbrev = props.STUSPS;
+                const stateName = props.STATE_NAME;
+
+                if (stateAbbrev && stateName) {
+                    stateNames[stateAbbrev] = stateName;
+                }
+            }
+
+            // Count counties per state from countyToState
+            updateStateCountyCounts();
+        }
+
+        // Update county counts and populations when state assignments change
+        function updateStateCountyCounts() {
+            stateCountyCounts = {};
+            statePopulations = {};
+            for (const [geoid, state] of Object.entries(countyToState)) {
+                stateCountyCounts[state] = (stateCountyCounts[state] || 0) + 1;
+                statePopulations[state] = (statePopulations[state] || 0) + (population[geoid] || 0);
+            }
+            // Recompute EVs based on new populations
+            updateStateEVs();
+        }
+
+        // Recompute electoral votes based on state populations
+        function updateStateEVs() {
+            const totalPop = Object.values(statePopulations).reduce((a, b) => a + b, 0);
+            if (totalPop === 0) return;
+            stateEVs = {};
+            for (const [state, pop] of Object.entries(statePopulations)) {
+                stateEVs[state] = Math.round(pop * 538 / totalPop);
+            }
+        }
+
+        // Find which county (and thus state) is under the mouse
+        function findStateAtPoint(x, y) {
+            for (const [geoid, path] of Object.entries(countyPaths)) {
+                if (ctx.isPointInPath(path, x, y)) {
+                    return countyToState[geoid];
+                }
+            }
+            return null;
+        }
+
+        // Show tooltip for a state
+        function showTooltip(state, mouseX, mouseY) {
+            if (!state) {
+                stateTooltip.style.display = 'none';
+                return;
+            }
+
+            const stateName = stateNames[state] || state;
+            const countyCount = stateCountyCounts[state] || 0;
+            const pop = statePopulations[state] || 0;
+            const ev = stateEVs[state] || 0;
+            const lean = stateLeans[state];
+
+            tooltipStateName.textContent = stateName;
+            tooltipCountyCount.textContent = countyCount;
+            tooltipPopulation.textContent = pop.toLocaleString();
+            tooltipEV.textContent = ev;
+            tooltipLean.textContent = formatLean(lean);
+            tooltipLean.className = getLeanClass(lean);
+
+            // Position tooltip near mouse, offset to avoid cursor
+            const offsetX = 15;
+            const offsetY = 15;
+            let left = mouseX + offsetX;
+            let top = mouseY + offsetY;
+
+            // Show briefly to measure
+            stateTooltip.style.display = 'block';
+            const tooltipWidth = stateTooltip.offsetWidth;
+            const tooltipHeight = stateTooltip.offsetHeight;
+
+            // Keep tooltip on screen
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+
+            if (left + tooltipWidth > viewportWidth - 10) {
+                left = mouseX - tooltipWidth - offsetX;
+            }
+            if (top + tooltipHeight > viewportHeight - 10) {
+                top = mouseY - tooltipHeight - offsetY;
+            }
+
+            stateTooltip.style.left = left + 'px';
+            stateTooltip.style.top = top + 'px';
+        }
+
+        // Canvas mouse event handlers
+        function setupTooltipHandlers() {
+            canvas.addEventListener('mousemove', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                const state = findStateAtPoint(x, y);
+                hoveredState = state;
+                showTooltip(state, e.clientX, e.clientY);
+            });
+
+            canvas.addEventListener('mouseleave', () => {
+                hoveredState = null;
+                stateTooltip.style.display = 'none';
+            });
         }
 
         // Compute bounding box of GeoJSON
@@ -605,6 +791,8 @@
                 population = initData.population || {};
                 stateLeans = initData.stateLeans || {};
                 countyToState = initData.countyToState || {};
+                stateEVs = initData.stateEVs || {};
+                statePopulations = initData.statePopulations || {};
                 election = initData.election || { winner: '-', r_ev: 0, d_ev: 0 };
 
                 console.log(`Loaded ${geojson.features.length} counties, ${palette.length} colors, ${Object.keys(neighbors).length} neighbor entries, ${Object.keys(partisanLean).length} partisan lean values, ${Object.keys(stateLeans).length} state leans`);
@@ -630,6 +818,12 @@
                 // Pre-compute paths
                 precomputePaths();
 
+                // Build state data for tooltips
+                buildStateData();
+
+                // Setup tooltip event handlers
+                setupTooltipHandlers();
+
                 // Initial render
                 render();
 
@@ -651,7 +845,10 @@
         socket.on('color_update', (data) => {
             countyColors = data.colors;
             if (data.stateLeans) stateLeans = data.stateLeans;
-            if (data.countyToState) countyToState = data.countyToState;
+            if (data.countyToState) {
+                countyToState = data.countyToState;
+                updateStateCountyCounts(); // Update county counts when states change
+            }
             if (data.election) {
                 election = data.election;
                 updateElectionDisplay();
@@ -694,7 +891,9 @@
             });
             startBtn.disabled = true;
             stopBtn.disabled = false;
-            const modeLabel = modeSelect.value === 'follow_the_leader' ? 'FTL' : 'Std';
+            const modeLabel = modeSelect.value === 'follow_the_leader' ? 'FTL' : 
+                             modeSelect.value === 'bfs' ? 'BFS' :
+                             modeSelect.value === 'dfs' ? 'DFS' : 'Std';
             statusText.textContent = 'Running (' + targetSelect.value + ', ' + modeLabel + ')';
             stats.style.display = 'grid';
         };
@@ -716,11 +915,15 @@
 
         socket.on('reset_complete', (data) => {
             countyColors = data.colors;
+            if (data.countyToState) {
+                countyToState = data.countyToState;
+                updateStateCountyCounts();
+            }
+            if (data.stateLeans) stateLeans = data.stateLeans;
             render();
             progressBar.style.width = '0%';
             progressText.textContent = '0 / 0';
             iterationEl.textContent = '0';
-            percentEl.textContent = '0%';
             statusText.textContent = 'Ready';
         });
 

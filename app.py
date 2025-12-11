@@ -125,6 +125,12 @@ def init_data():
     # Build county to state mapping
     county_to_state_map = {str(geoid): str(state) for geoid, state in my_sim.county_to_state.items()}
 
+    # Build state EVs and populations
+    state_evs = dict(my_sim.state_to_ev)
+    state_populations = {}
+    for state, counties in my_sim.state_to_counties.items():
+        state_populations[state] = sum(my_sim.county_to_population.get(c, 0) for c in counties)
+
     return jsonify({
         'palette': PALETTE,
         'colors': get_county_colors(),
@@ -133,6 +139,8 @@ def init_data():
         'population': population,
         'stateLeans': get_state_partisan_leans(),
         'countyToState': county_to_state_map,
+        'stateEVs': state_evs,
+        'statePopulations': state_populations,
         'election': get_election_results()
     })
 
