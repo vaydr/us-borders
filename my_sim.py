@@ -8,6 +8,8 @@ state_to_counties = {}
 state_to_bordering_counties = {}
 county_to_partisan_lean = {}
 county_to_population = {}
+state_to_partisan_lean = {}
+state_to_ev = {'AK': 3, 'AL': 9, 'AR': 6, 'AZ': 11, 'CA': 55, 'CO': 9, 'CT': 7, 'DC': 3, 'DE': 3, 'FL': 29, 'GA': 16, 'HI': 4, 'IA': 6, 'ID': 4, 'IL': 20, 'IN': 11, 'KS': 6, 'KY': 8, 'LA': 8, 'MA': 11, 'MD': 10, 'ME': 4, 'MI': 16, 'MN': 10, 'MO': 10, 'MS': 6, 'MT': 3, 'NC': 15, 'ND': 3, 'NE': 5, 'NH': 4, 'NJ': 14, 'NM': 5, 'NV': 6, 'NY': 29, 'OH': 18, 'OK': 7, 'OR': 7, 'PA': 20, 'RI': 4, 'SC': 9, 'SD': 3, 'TN': 11, 'TX': 38, 'UT': 6, 'VA': 13, 'VT': 3, 'WA': 12, 'WI': 10, 'WV': 5, 'WY': 3}
 import csv
 NUM_ITERATIONS = 25000
 YEAR = 2020
@@ -20,7 +22,6 @@ for line in open('data/county_adjacency.txt'):
     if state in ['AK', 'HI']: # skip Alaska and Hawaii as they are not part of the contiguous US
         continue
     adjacent_state = adjacent_county_name_state.split(', ')[1]
-
     state_to_counties.setdefault(state, set()).add(county_id)
     county_to_neighbors.setdefault(county_id, set()).add(adjacent_county_id)
     county_to_state[county_id] = state
@@ -104,8 +105,6 @@ def generate_initial_partisan_lean(year: int | None = None):
                 raise ValueError(f"County {county_fips} with name {county_name} not found")
             county_to_partisan_lean[county_fips] = (votes_gop - votes_dem) / total_votes
             county_to_population[county_fips] = total_votes
-
-
 def _is_state_contiguous(state):
     counties = state_to_counties[state]
     if not counties:
@@ -126,6 +125,48 @@ def _is_state_contiguous(state):
                     queue.append(neighbor)
     
     return len(visited) == len(counties)
+
+def compute_state_to_partisan_lean():
+    global state_to_partisan_lean
+    state_to_partisan_lean = {}
+    for state, counties in state_to_counties.items():
+        if counties:
+            avg_lean = sum(county_to_partisan_lean[county] * county_to_population[county] for county in counties) / sum(county_to_population[county] for county in counties)
+            state_to_partisan_lean[state] = avg_lean
+    return state_to_partisan_lean
+
+def _reward_score(lean:float, tie_mode:bool = False):
+    #lean is between -1 and 1
+    if lean == 0:
+        return 10000 if tie_mode else 0
+    else:
+        return 1/(10 * lean**2) if tie_mode else 1/(10 * lean)
+def get_configuration_score(winner: "Republican" | "Democratic" | "Tie"):
+    global state_to_partisan_lean
+    score = 0
+    if winner != "Tie":
+        multiplier = 1 if winner == "Republican" else -1
+        for _, partisan_lean in state_to_partisan_lean.items():
+            score += _reward_score(partisan_lean * multiplier, tie_mode=False)
+    else:
+        for _, partisan_lean in state_to_partisan_lean.items():
+            score += _reward_score(partisan_lean, tie_mode=True)
+
+    return score
+def compute_election_winner():
+    global state_to_partisan_lean
+    r_win, d_win = 0, 0
+    for state, partisan_lean in state_to_partisan_lean.items():
+        if partisan_lean > 0:
+            r_win += state_to_ev[state]
+        else:
+            d_win += state_to_ev[state]
+    if r_win > d_win:
+        return 'Republican', r_win, d_win
+    elif d_win > r_win:
+        return 'Democratic', d_win, r_win
+    else:
+        return 'Tie', r_win, d_win
 
 def main():
 

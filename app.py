@@ -69,6 +69,45 @@ def get_geojson():
     return send_file('data/counties.geojson', mimetype='application/json')
 
 
+def get_state_partisan_leans():
+    """Calculate population-weighted average partisan lean for each state."""
+    state_leans = {}
+    for state, counties in my_sim.state_to_counties.items():
+        if counties:
+            total_pop = sum(my_sim.county_to_population.get(c, 0) for c in counties)
+            if total_pop > 0:
+                avg_lean = sum(
+                    my_sim.county_to_partisan_lean.get(c, 0) * my_sim.county_to_population.get(c, 0)
+                    for c in counties
+                ) / total_pop
+                state_leans[str(state)] = avg_lean
+            else:
+                state_leans[str(state)] = 0
+        else:
+            state_leans[str(state)] = 0
+    return state_leans
+
+
+def get_election_results():
+    """Compute election winner using my_sim's logic."""
+    my_sim.compute_state_to_partisan_lean()
+    winner, winner_ev, loser_ev = my_sim.compute_election_winner()
+
+    # Determine R and D EVs
+    if winner == 'Republican':
+        r_ev, d_ev = winner_ev, loser_ev
+    elif winner == 'Democratic':
+        r_ev, d_ev = loser_ev, winner_ev
+    else:  # Tie
+        r_ev, d_ev = winner_ev, loser_ev
+
+    return {
+        'winner': winner,
+        'r_ev': r_ev,
+        'd_ev': d_ev
+    }
+
+
 @app.route('/api/init')
 def init_data():
     """Get initial state: palette, county colors, neighbor data, and partisan lean."""
@@ -80,11 +119,21 @@ def init_data():
     # Build partisan lean dict with string keys
     partisan_lean = {str(geoid): lean for geoid, lean in my_sim.county_to_partisan_lean.items()}
 
+    # Build population dict with string keys
+    population = {str(geoid): pop for geoid, pop in my_sim.county_to_population.items()}
+
+    # Build county to state mapping
+    county_to_state_map = {str(geoid): str(state) for geoid, state in my_sim.county_to_state.items()}
+
     return jsonify({
         'palette': PALETTE,
         'colors': get_county_colors(),
         'neighbors': neighbors,
-        'partisanLean': partisan_lean
+        'partisanLean': partisan_lean,
+        'population': population,
+        'stateLeans': get_state_partisan_leans(),
+        'countyToState': county_to_state_map,
+        'election': get_election_results()
     })
 
 
@@ -129,7 +178,10 @@ def start_algorithm(data):
                     socketio.emit('color_update', {
                         'generation': i + 1,
                         'total': iterations,
-                        'colors': get_county_colors()
+                        'colors': get_county_colors(),
+                        'stateLeans': get_state_partisan_leans(),
+                        'countyToState': {str(geoid): str(state) for geoid, state in my_sim.county_to_state.items()},
+                        'election': get_election_results()
                     })
 
             socketio.emit('algorithm_complete', {'generations': iterations})

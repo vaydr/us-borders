@@ -138,45 +138,42 @@
             margin-bottom: 20px;
         }
         .info p { margin: 5px 0; color: #aaa; font-size: 14px; line-height: 1.6; }
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 50px;
-            height: 26px;
+        .election-results {
+            width: 100%;
+            margin-top: 15px;
+            background: #1a1a2e;
+            padding: 15px;
+            border-radius: 5px;
         }
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
+        .ev-bar {
+            display: flex;
+            height: 30px;
+            border-radius: 5px;
+            overflow: hidden;
+            background: #333;
         }
-        .switch .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #00d4ff;
-            transition: 0.3s;
-            border-radius: 26px;
+        .ev-dem {
+            background: linear-gradient(90deg, #2563eb, #3b82f6);
+            height: 100%;
+            transition: width 0.3s ease;
         }
-        .switch .slider:before {
-            position: absolute;
-            content: "";
-            height: 20px;
-            width: 20px;
-            left: 3px;
-            bottom: 3px;
-            background-color: white;
-            transition: 0.3s;
-            border-radius: 50%;
+        .ev-rep {
+            background: linear-gradient(90deg, #dc2626, #ef4444);
+            height: 100%;
+            transition: width 0.3s ease;
         }
-        .switch input:checked + .slider {
-            background: linear-gradient(90deg, #3b82f6, #ef4444);
+        .ev-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 14px;
+            font-weight: 600;
         }
-        .switch input:checked + .slider:before {
-            transform: translateX(24px);
-        }
+        .ev-dem-label { color: #3b82f6; }
+        .ev-rep-label { color: #ef4444; }
+        .winner-dem { color: #3b82f6 !important; }
+        .winner-rep { color: #ef4444 !important; }
+        .winner-tie { color: #a855f7 !important; }
     </style>
 </head>
 <body>
@@ -207,14 +204,11 @@
 
                 <div class="control-group">
                     <label>Color Mode</label>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <span style="font-size: 14px; color: #aaa;">State</span>
-                        <label class="switch">
-                            <input type="checkbox" id="colorModeToggle">
-                            <span class="slider"></span>
-                        </label>
-                        <span style="font-size: 14px; color: #aaa;">Partisan</span>
-                    </div>
+                    <select id="colorModeSelect" style="width: 100%; padding: 10px; background: #1a1a2e; border: 1px solid #444; border-radius: 5px; color: #fff; font-size: 14px;">
+                        <option value="state">Unique State Colors</option>
+                        <option value="county-partisan">County Partisan Lean</option>
+                        <option value="state-partisan">State Avg Partisan Lean</option>
+                    </select>
                 </div>
 
                 <div class="buttons">
@@ -253,8 +247,18 @@
                         <div class="stat-value" id="percent">0%</div>
                     </div>
                     <div class="stat">
-                        <div class="stat-label">Render Time</div>
-                        <div class="stat-value" id="renderTime">0ms</div>
+                        <div class="stat-label">Winner</div>
+                        <div class="stat-value" id="winner">-</div>
+                    </div>
+                </div>
+                <div class="election-results" id="electionResults" style="display: none;">
+                    <div class="ev-bar">
+                        <div class="ev-dem" id="evDemBar"></div>
+                        <div class="ev-rep" id="evRepBar"></div>
+                    </div>
+                    <div class="ev-labels">
+                        <span class="ev-dem-label"><span id="evDem">0</span> Dem</span>
+                        <span class="ev-rep-label"><span id="evRep">0</span> Rep</span>
                     </div>
                 </div>
             </div>
@@ -275,7 +279,11 @@
         let neighbors = {};    // geoid -> [neighbor geoids]
         let sharedEdges = {};  // "geoid1-geoid2" -> Path2D of shared edge
         let partisanLean = {}; // geoid -> partisan lean value (-1 to 1)
-        let colorMode = 'state'; // 'state' or 'partisan'
+        let population = {};   // geoid -> population
+        let stateLeans = {};   // state -> avg partisan lean
+        let countyToState = {}; // geoid -> state
+        let colorMode = 'state'; // 'state', 'county-partisan', or 'state-partisan'
+        let election = { winner: '-', r_ev: 0, d_ev: 0 };
         let bounds = null;
         let transform = null;
 
@@ -289,7 +297,12 @@
         const stats = document.getElementById('stats');
         const iterationEl = document.getElementById('iteration');
         const percentEl = document.getElementById('percent');
-        const renderTimeEl = document.getElementById('renderTime');
+        const winnerEl = document.getElementById('winner');
+        const electionResults = document.getElementById('electionResults');
+        const evDemBar = document.getElementById('evDemBar');
+        const evRepBar = document.getElementById('evRepBar');
+        const evDemEl = document.getElementById('evDem');
+        const evRepEl = document.getElementById('evRep');
         const iterationsInput = document.getElementById('iterations');
         const renderEveryInput = document.getElementById('renderEvery');
 
@@ -300,12 +313,35 @@
             document.getElementById('renderEveryValue').textContent = renderEveryInput.value;
         };
 
-        // Color mode toggle
-        const colorModeToggle = document.getElementById('colorModeToggle');
-        colorModeToggle.onchange = () => {
-            colorMode = colorModeToggle.checked ? 'partisan' : 'state';
+        // Color mode select
+        const colorModeSelect = document.getElementById('colorModeSelect');
+        colorModeSelect.onchange = () => {
+            colorMode = colorModeSelect.value;
             render();
         };
+
+        // Update election display
+        function updateElectionDisplay() {
+            const totalEV = election.r_ev + election.d_ev;
+            const demPct = totalEV > 0 ? (election.d_ev / totalEV) * 100 : 50;
+            const repPct = totalEV > 0 ? (election.r_ev / totalEV) * 100 : 50;
+
+            evDemBar.style.width = demPct + '%';
+            evRepBar.style.width = repPct + '%';
+            evDemEl.textContent = election.d_ev;
+            evRepEl.textContent = election.r_ev;
+
+            // Update winner display
+            winnerEl.textContent = election.winner;
+            winnerEl.className = 'stat-value';
+            if (election.winner === 'Democratic') {
+                winnerEl.classList.add('winner-dem');
+            } else if (election.winner === 'Republican') {
+                winnerEl.classList.add('winner-rep');
+            } else {
+                winnerEl.classList.add('winner-tie');
+            }
+        }
 
         // Convert partisan lean (-1 to 1) to color (blue to red)
         function leanToColor(lean) {
@@ -495,10 +531,17 @@
                 const path = countyPaths[geoid];
                 let color;
 
-                if (colorMode === 'partisan') {
+                if (colorMode === 'county-partisan') {
+                    // Each county colored by its own partisan lean
                     const lean = partisanLean[geoid];
                     color = lean !== undefined ? leanToColor(lean) : '#cccccc';
+                } else if (colorMode === 'state-partisan') {
+                    // Each county colored by its state's average partisan lean
+                    const state = countyToState[geoid];
+                    const lean = state ? stateLeans[state] : undefined;
+                    color = lean !== undefined ? leanToColor(lean) : '#cccccc';
                 } else {
+                    // Unique state colors
                     const colorIdx = countyColors[geoid];
                     color = palette[colorIdx] || '#cccccc';
                 }
@@ -531,8 +574,6 @@
                 }
             }
 
-            const elapsed = performance.now() - t0;
-            renderTimeEl.textContent = elapsed.toFixed(1) + 'ms';
         }
 
         // Initialize
@@ -550,8 +591,12 @@
                 countyColors = initData.colors;
                 neighbors = initData.neighbors;
                 partisanLean = initData.partisanLean || {};
+                population = initData.population || {};
+                stateLeans = initData.stateLeans || {};
+                countyToState = initData.countyToState || {};
+                election = initData.election || { winner: '-', r_ev: 0, d_ev: 0 };
 
-                console.log(`Loaded ${geojson.features.length} counties, ${palette.length} colors, ${Object.keys(neighbors).length} neighbor entries, ${Object.keys(partisanLean).length} partisan lean values`);
+                console.log(`Loaded ${geojson.features.length} counties, ${palette.length} colors, ${Object.keys(neighbors).length} neighbor entries, ${Object.keys(partisanLean).length} partisan lean values, ${Object.keys(stateLeans).length} state leans`);
 
                 // Setup canvas
                 const width = 1200;
@@ -581,6 +626,8 @@
                 loadingState.style.display = 'none';
                 canvas.style.display = 'block';
                 stats.style.display = 'grid';
+                electionResults.style.display = 'block';
+                updateElectionDisplay();
                 statusText.textContent = 'Ready';
 
             } catch (err) {
@@ -592,6 +639,12 @@
         // Socket handlers
         socket.on('color_update', (data) => {
             countyColors = data.colors;
+            if (data.stateLeans) stateLeans = data.stateLeans;
+            if (data.countyToState) countyToState = data.countyToState;
+            if (data.election) {
+                election = data.election;
+                updateElectionDisplay();
+            }
             render();
 
             const prog = (data.generation / data.total) * 100;
