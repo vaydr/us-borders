@@ -1032,17 +1032,9 @@
 
                     <!-- EV Margin / Electoral Efficiency -->
                     <div class="dash-card" id="fairnessCard" style="--accent: #a855f7;">
-                        <div class="dash-label">Electoral Metrics</div>
-                        <div class="mini-stats" style="border: none; padding: 0; margin-bottom: 4px;">
-                            <div class="mini-stat">
-                                <div class="mini-stat-value" id="evMarginPct" style="font-size: 20px;">0%</div>
-                                <div class="mini-stat-label">EV Margin</div>
-                            </div>
-                            <div class="mini-stat">
-                                <div class="mini-stat-value" id="fairnessScore" style="font-size: 20px;">0%</div>
-                                <div class="mini-stat-label">Efficiency</div>
-                            </div>
-                        </div>
+                        <div class="dash-label">EV Margin</div>
+                        <div class="dash-value" id="evMarginPct" style="color: #a855f7;">0%</div>
+                        <div class="dash-subtitle"><span id="fairnessScore">0%</span> efficiency</div>
                         <div class="stat-chart">
                             <svg viewBox="0 0 200 30" preserveAspectRatio="none">
                                 <defs>
@@ -1483,18 +1475,21 @@
             const demEVPct = totalEV > 0 ? (election.d_ev / totalEV) * 100 : 50;
             const repEVPct = totalEV > 0 ? (election.r_ev / totalEV) * 100 : 50;
             const evMarginPctValue = Math.abs(demEVPct - repEVPct);
+            // Signed margin: positive = R winning, negative = D winning
+            const evMarginSigned = (repEVPct - demEVPct) / 100;
             if (evMarginPctEl) {
                 evMarginPctEl.textContent = evMarginPctValue.toFixed(1) + '%';
-                evMarginPctEl.style.color = metrics.evWinner === 'dem' ? '#3b82f6' :
-                                             metrics.evWinner === 'rep' ? '#ef4444' : '#a855f7';
+                evMarginPctEl.style.color = leanToColor(evMarginSigned * 3);
             }
 
             // Update Electoral Efficiency (EV% - PopVote%)
+            // Signed: positive = winner overperforming, need to map to R/D
+            const efficiencySigned = metrics.evWinner === 'rep' ? metrics.evMarginValue / 100 :
+                                     metrics.evWinner === 'dem' ? -metrics.evMarginValue / 100 : 0;
             if (fairnessScoreEl) {
                 const sign = metrics.evMarginValue >= 0 ? '+' : '';
                 fairnessScoreEl.textContent = sign + metrics.evMarginValue.toFixed(1) + '%';
-                fairnessScoreEl.style.color = metrics.evWinner === 'dem' ? '#3b82f6' :
-                                               metrics.evWinner === 'rep' ? '#ef4444' : '#a855f7';
+                fairnessScoreEl.style.color = leanToColor(efficiencySigned * 3);
             }
             fairnessHistory.push({ iter: currentIter, value: Math.abs(metrics.evMarginValue) });
             renderLineChart(fairnessLine, fairnessArea, fairnessHistory);
@@ -1606,16 +1601,21 @@
                 evTotalDemEl.className = 'ev-total-label dem' + (winner === 'DEM' ? ' winner' : '');
             }
 
+            // Calculate signed margin for coloring: positive = R, negative = D
+            const signedMarginPct = (totalRep - totalDem) / 538;
+
             if (winnerVEl) {
                 winnerVEl.textContent = winner;
-                winnerVEl.className = 'stat-value ' + (winner === 'DEM' ? 'dem' : winner === 'GOP' ? 'rep' : 'purple');
+                winnerVEl.className = 'stat-value';
+                winnerVEl.style.color = leanToColor(signedMarginPct * 3);
             }
 
             // Update EV margin
             const margin = Math.abs(totalDem - totalRep);
             if (evMarginVEl) {
                 evMarginVEl.textContent = Math.round(margin);
-                evMarginVEl.className = 'stat-value ' + (totalDem > totalRep ? 'dem' : totalRep > totalDem ? 'rep' : 'purple');
+                evMarginVEl.className = 'stat-value';
+                evMarginVEl.style.color = leanToColor(signedMarginPct * 3);
             }
         }
 
