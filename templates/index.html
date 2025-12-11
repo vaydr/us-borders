@@ -111,6 +111,16 @@
             border-color: #a855f7;
             box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
         }
+        .glow-input.dual {
+            display: flex;
+            gap: 10px;
+        }
+        .glow-input.dual .dual-row {
+            flex: 1;
+        }
+        .glow-input.dual .dual-row label {
+            margin-bottom: 4px;
+        }
 
         /* K-way toggle selector */
         .kway-select {
@@ -865,18 +875,19 @@
             <div class="viz-container">
                 <div class="floating-controls" id="floatingControls" style="display: none;">
                     <div class="iter-box" id="iterBox">
-                        <div class="iter-label">Iteration</div>
+                        <div class="iter-label">Current Iteration</div>
                         <div class="iter-value" id="iteration">0</div>
                     </div>
 
-                    <div class="glow-input">
-                        <label>Terminate After</label>
-                        <input type="number" id="iterations" min="100" max="150000" value="5000" step="100">
-                    </div>
-
-                    <div class="glow-input">
-                        <label>Redraw Period</label>
-                        <input type="number" id="renderEvery" min="1" max="500" value="25" step="1">
+                    <div class="glow-input dual">
+                        <div class="dual-row">
+                            <label>Iterations</label>
+                            <input type="number" id="iterations" min="100" max="150000" value="100000" step="100">
+                        </div>
+                        <div class="dual-row">
+                            <label>Redraw</label>
+                            <input type="number" id="renderEvery" min="1" max="500" value="10" step="1">
+                        </div>
                     </div>
 
                     <div class="kway-select purple" id="colorModeKway">
@@ -923,6 +934,18 @@
                             </div>
                             <div class="kway-option" data-value="dfs" title="DFS">
                                 <i data-lucide="git-branch" class="kway-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="kway-select yellow" id="diffKway">
+                        <div class="kway-label">Diff</div>
+                        <div class="kway-options">
+                            <div class="kway-option active" data-value="off" title="Off">
+                                <i data-lucide="eye-off" class="kway-icon"></i>
+                            </div>
+                            <div class="kway-option" data-value="on" title="On">
+                                <i data-lucide="git-compare" class="kway-icon"></i>
                             </div>
                         </div>
                     </div>
@@ -1101,6 +1124,9 @@
         let stateLeans = {};   // state -> avg partisan lean
         let countyToState = {}; // geoid -> state
         let colorMode = 'county-partisan'; // 'state', 'county-partisan', or 'state-partisan'
+        let previousCountyToState = {}; // Previous state assignments for diff detection
+        let changedCounties = new Set(); // Counties that changed since last render
+        let diffMode = false; // Whether diff highlighting is enabled
         let election = { winner: '-', r_ev: 0, d_ev: 0 };
         let bounds = null;
         let transform = null;
@@ -1804,6 +1830,11 @@
             selectedMode = value;
         });
 
+        const getDiffMode = setupKwaySelector('diffKway', (value) => {
+            diffMode = (value === 'on');
+            render();
+        });
+
         // Convert partisan lean (-1 to 1) to color (blue to red)
         function leanToColor(lean) {
             // Clamp lean to -1 to 1 range
@@ -2129,7 +2160,10 @@
                 const path = countyPaths[geoid];
                 let color;
 
-                if (colorMode === 'county-partisan') {
+                // Check if this county changed and diff mode is on
+                if (diffMode && changedCounties.has(geoid)) {
+                    color = '#ffcc00'; // Bright gold highlight
+                } else if (colorMode === 'county-partisan') {
                     // Each county colored by its own partisan lean
                     const lean = partisanLean[geoid];
                     color = lean !== undefined ? leanToColor(lean * 2) : '#cccccc';
@@ -2192,6 +2226,7 @@
                 population = initData.population || {};
                 stateLeans = initData.stateLeans || {};
                 countyToState = initData.countyToState || {};
+                previousCountyToState = { ...countyToState };
                 stateEVs = initData.stateEVs || {};
                 statePopulations = initData.statePopulations || {};
                 election = initData.election || { winner: '-', r_ev: 0, d_ev: 0 };
@@ -2249,6 +2284,20 @@
 
         // Socket handlers
         socket.on('color_update', (data) => {
+            // Detect changed counties for diff mode
+            if (data.countyToState && diffMode) {
+                changedCounties.clear();
+                for (const [geoid, newState] of Object.entries(data.countyToState)) {
+                    const oldState = previousCountyToState[geoid];
+                    if (oldState !== undefined && oldState !== newState) {
+                        changedCounties.add(geoid);
+                    }
+                }
+            }
+            if (data.countyToState) {
+                previousCountyToState = { ...data.countyToState };
+            }
+
             countyColors = data.colors;
             if (data.stateLeans) stateLeans = data.stateLeans;
             if (data.countyToState) {
@@ -2332,6 +2381,8 @@
             countyColors = data.colors;
             if (data.countyToState) {
                 countyToState = data.countyToState;
+                previousCountyToState = { ...countyToState };
+                changedCounties.clear();
                 updateStateCountyCounts();
             }
             if (data.stateLeans) stateLeans = data.stateLeans;
