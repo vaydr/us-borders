@@ -150,7 +150,7 @@ def compute_state_to_partisan_lean():
     
 def _reward_score(lean:float, tie_mode:bool = False):
     if tie_mode:
-        return (1-abs(lean))
+        return (-abs(lean))
     sign = 1 if lean > 0 else -1 if lean < 0 else 0
     return sign - lean
 

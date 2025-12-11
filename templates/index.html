@@ -461,63 +461,186 @@
         }
         .spark-bar:last-child { opacity: 1; }
         
-        /* EV Bar Enhanced */
-        .ev-section { grid-column: span 2; }
-        .ev-bar-enhanced {
+        /* Floating EV Panel (right side) */
+        .floating-ev {
+            position: absolute;
+            top: 10px;
+            right: -180px;
+            z-index: 100;
             display: flex;
-            height: 40px;
+            flex-direction: row;
+            gap: 10px;
+            font-family: "Geom", sans-serif;
+        }
+
+        /* Vertical EV Bar */
+        .ev-bar-vertical {
+            width: 50px;
+            height: 280px;
+            background: rgba(10, 10, 20, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            box-shadow:
+                0 0 20px rgba(168, 85, 247, 0.15),
+                inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        .ev-bar-track {
+            flex: 1;
+            background: #222;
             border-radius: 6px;
             overflow: hidden;
-            background: #333;
+            display: flex;
+            flex-direction: column;
             position: relative;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);
         }
-        .ev-dem-bar {
-            background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
-            height: 100%;
-            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        .ev-bar-rep-v {
+            background: linear-gradient(180deg, #dc2626 0%, #ef4444 100%);
+            width: 100%;
+            transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            padding-left: 12px;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 8px;
             font-weight: 700;
-            font-size: 20px;
+            font-size: 16px;
             color: white;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-            box-shadow: 2px 0 10px rgba(59,130,246,0.5);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            box-shadow: 0 2px 15px rgba(239,68,68,0.5);
         }
-        .ev-rep-bar {
-            background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
-            height: 100%;
-            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        .ev-bar-dem-v {
+            background: linear-gradient(0deg, #2563eb 0%, #3b82f6 100%);
+            width: 100%;
+            transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            padding-right: 12px;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 8px;
             font-weight: 700;
-            font-size: 20px;
+            font-size: 16px;
             color: white;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-            box-shadow: -2px 0 10px rgba(239,68,68,0.5);
+            text-shadow: 0 -2px 4px rgba(0,0,0,0.5);
+            box-shadow: 0 -2px 15px rgba(59,130,246,0.5);
         }
-        .ev-center-line {
+        .ev-270-line {
             position: absolute;
-            left: 50%;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background: rgba(255,255,255,0.3);
-            transform: translateX(-50%);
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 2px;
+            background: rgba(255,255,255,0.4);
+            transform: translateY(-50%);
+            box-shadow: 0 0 8px rgba(255,255,255,0.3);
         }
-        .ev-270-marker {
+        .ev-270-label {
             position: absolute;
-            top: -18px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 10px;
+            right: -28px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 8px;
+            color: #888;
+            writing-mode: vertical-rl;
+            letter-spacing: 1px;
+        }
+
+        /* EV Stats Column */
+        .ev-stats-col {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            justify-content: center;
+        }
+        .ev-stat-box {
+            background: rgba(10, 10, 20, 0.85);
+            backdrop-filter: blur(10px);
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            min-width: 80px;
+        }
+        .ev-stat-box .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            line-height: 1;
+            color: #00d4ff;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+        .ev-stat-box .stat-value.dem { color: #3b82f6; text-shadow: 0 0 10px rgba(59,130,246,0.5); }
+        .ev-stat-box .stat-value.rep { color: #ef4444; text-shadow: 0 0 10px rgba(239,68,68,0.5); }
+        .ev-stat-box .stat-value.purple { color: #a855f7; text-shadow: 0 0 10px rgba(168,85,247,0.5); }
+        .ev-stat-box .stat-label {
+            font-size: 7px;
             color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-top: 2px;
+        }
+        .ev-stat-box.stat-carousel .carousel-items {
+            height: 36px;
+        }
+        .ev-stat-box.stat-carousel .carousel-dots {
+            margin-top: 4px;
         }
         
+        /* Tipping Point Histogram (positioned top-right) */
+        .tipping-histogram {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: flex-end;
+            height: 50px;
+            gap: 3px;
+        }
+        .tipping-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1px;
+        }
+        .tipping-bar {
+            width: 14px;
+            border-radius: 2px 2px 0 0;
+            min-height: 2px;
+            transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease;
+        }
+        .tipping-bar.dem { background: linear-gradient(to top, #2563eb, #3b82f6); }
+        .tipping-bar.rep { background: linear-gradient(to top, #dc2626, #ef4444); }
+        .tipping-bar.tossup { background: linear-gradient(to top, #7c3aed, #a855f7); }
+        .tipping-bar.current {
+            box-shadow: 0 0 10px currentColor;
+            animation: tipping-glow 1s ease-in-out infinite;
+        }
+        .tipping-bar.dem.current { color: #3b82f6; }
+        .tipping-bar.rep.current { color: #ef4444; }
+        .tipping-bar.tossup.current { color: #a855f7; }
+        @keyframes tipping-glow {
+            0%, 100% { opacity: 1; box-shadow: 0 0 10px currentColor; }
+            50% { opacity: 0.8; box-shadow: 0 0 20px currentColor; }
+        }
+        .tipping-label {
+            font-size: 7px;
+            font-weight: 600;
+            color: #666;
+            text-align: center;
+        }
+        #tippingCard {
+            position: relative;
+        }
+        #tippingCard.pulse .dash-value {
+            animation: tipping-flash 0.5s ease-out;
+        }
+        @keyframes tipping-flash {
+            0% { transform: scale(1.15); }
+            100% { transform: scale(1); }
+        }
+
         /* Histogram */
         .histogram {
             display: flex;
@@ -686,49 +809,65 @@
                 </div>
 
                 <canvas id="mapCanvas" style="display: none;"></canvas>
+
+                <!-- Floating EV Panel (right side) -->
+                <div class="floating-ev" id="floatingEV" style="display: none;">
+                    <div class="ev-bar-vertical">
+                        <div class="ev-bar-track">
+                            <div class="ev-bar-rep-v" id="evRepBarV"><span id="evRepV">0</span></div>
+                            <div class="ev-bar-dem-v" id="evDemBarV"><span id="evDemV">0</span></div>
+                            <div class="ev-270-line"></div>
+                        </div>
+                    </div>
+                    <div class="ev-stats-col">
+                        <div class="ev-stat-box">
+                            <div class="stat-value purple" id="winnerV">-</div>
+                            <div class="stat-label">Projected</div>
+                        </div>
+                        <div class="ev-stat-box">
+                            <div class="stat-value" id="evMarginV">0</div>
+                            <div class="stat-label">EV Margin</div>
+                        </div>
+                        <div class="ev-stat-box">
+                            <div class="stat-value" id="swingEVs">0</div>
+                            <div class="stat-label">Swing EVs</div>
+                        </div>
+                        <div class="ev-stat-box stat-carousel" id="evCarousel" style="--carousel-color: #a855f7;">
+                            <div class="carousel-items">
+                                <div class="carousel-item active" data-key="demshare2">
+                                    <div class="stat-value dem" id="demShare2">-</div>
+                                    <div class="stat-label">Dem Vote</div>
+                                </div>
+                                <div class="carousel-item" data-key="repshare2">
+                                    <div class="stat-value rep" id="repShare2">-</div>
+                                    <div class="stat-label">GOP Vote</div>
+                                </div>
+                                <div class="carousel-item" data-key="year2">
+                                    <div class="stat-value purple">2020</div>
+                                    <div class="stat-label">Year</div>
+                                </div>
+                            </div>
+                            <div class="carousel-dots"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
                 
                 <div class="dashboard" id="dashboard" style="display: none;">
-                    <!-- EV Bar - Full Width -->
-                    <div class="dash-card ev-section" style="--accent: #a855f7;">
-                        <div class="dash-label">Electoral College</div>
-                        <div class="ev-270-marker">270 to win</div>
-                        <div class="ev-bar-enhanced">
-                            <div class="ev-dem-bar" id="evDemBar"><span id="evDem">0</span></div>
-                            <div class="ev-rep-bar" id="evRepBar"><span id="evRep">0</span></div>
-                            <div class="ev-center-line"></div>
-                        </div>
-                        <div class="mini-stats">
-                            <div class="mini-stat">
-                                <div class="mini-stat-value" id="winner" style="color: #a855f7;">-</div>
-                                <div class="mini-stat-label">Projected</div>
-                            </div>
-                            <div class="mini-stat">
-                                <div class="mini-stat-value" id="evMargin">0</div>
-                                <div class="mini-stat-label">EV Margin</div>
-                            </div>
-                            <div class="mini-stat stat-carousel" id="statesCarousel" style="--carousel-color: #00d4ff;">
-                                <div class="carousel-items">
-                                    <div class="carousel-item active" data-key="demshare">
-                                        <div class="mini-stat-value" id="demShare" style="color: #3b82f6;">-</div>
-                                        <div class="mini-stat-label">Dem Share</div>
-                                    </div>
-                                    <div class="carousel-item" data-key="repshare">
-                                        <div class="mini-stat-value" id="repShare" style="color: #ef4444;">-</div>
-                                        <div class="mini-stat-label">GOP Share</div>
-                                    </div>
-                                    <div class="carousel-item" data-key="margin">
-                                        <div class="mini-stat-value" id="popMargin">-</div>
-                                        <div class="mini-stat-label">Margin</div>
-                                    </div>
-                                    <div class="carousel-item" data-key="year">
-                                        <div class="mini-stat-value" id="electionYear" style="color: #a855f7;">2020</div>
-                                        <div class="mini-stat-label">Year</div>
-                                    </div>
-                                </div>
-                                <div class="carousel-dots"></div>
-                            </div>
-                        </div>
+                    <!-- Tipping Point State -->
+                    <div class="dash-card" id="tippingCard" style="--accent: #a855f7;">
+                        <div class="dash-label">Tipping Point</div>
+                        <div class="dash-value" id="tippingState" style="color: #a855f7;">-</div>
+                        <div class="dash-subtitle" id="tippingSubtitle">decides the election</div>
+                        <div class="tipping-histogram" id="tippingHistogram"></div>
+                    </div>
+
+                    <!-- New Brainrot Stat 2: Moves -->
+                    <div class="dash-card" id="movesCard" style="--accent: #fbbf24;">
+                        <div class="dash-label">Total Moves</div>
+                        <div class="dash-value" id="totalMoves" style="color: #fbbf24;">0</div>
+                        <div class="dash-subtitle">county reassignments</div>
+                        <div class="sparkline" id="movesSparkline"></div>
                     </div>
                     
                     <!-- Swing States -->
@@ -813,17 +952,28 @@
         const stopBtn = document.getElementById('stopBtn');
         const loadingState = document.getElementById('loadingState');
         const floatingControls = document.getElementById('floatingControls');
+        const floatingEV = document.getElementById('floatingEV');
         const iterBox = document.getElementById('iterBox');
         // Dashboard elements
         const iterationEl = document.getElementById('iteration');
         const dashboard = document.getElementById('dashboard');
-        const winnerEl = document.getElementById('winner');
-        const evDemBar = document.getElementById('evDemBar');
-        const evRepBar = document.getElementById('evRepBar');
-        const evDemEl = document.getElementById('evDem');
-        const evRepEl = document.getElementById('evRep');
-        const evMarginEl = document.getElementById('evMargin');
-        const stateCountEl = document.getElementById('stateCount');
+        // Vertical EV bar elements
+        const evDemBarV = document.getElementById('evDemBarV');
+        const evRepBarV = document.getElementById('evRepBarV');
+        const evDemVEl = document.getElementById('evDemV');
+        const evRepVEl = document.getElementById('evRepV');
+        const winnerVEl = document.getElementById('winnerV');
+        const evMarginVEl = document.getElementById('evMarginV');
+        const swingEVsEl = document.getElementById('swingEVs');
+        // Tipping point elements
+        const tippingStateEl = document.getElementById('tippingState');
+        const tippingSubtitleEl = document.getElementById('tippingSubtitle');
+        const tippingHistogram = document.getElementById('tippingHistogram');
+        const tippingCard = document.getElementById('tippingCard');
+        // New brainrot stat elements
+        const totalMovesEl = document.getElementById('totalMoves');
+        const movesSparkline = document.getElementById('movesSparkline');
+        // Other dashboard elements
         const swingStatesEl = document.getElementById('swingStates');
         const swingCard = document.getElementById('swingCard');
         const fairnessScoreEl = document.getElementById('fairnessScore');
@@ -836,6 +986,16 @@
         const tossupEl = document.getElementById('tossup');
         const leanRedEl = document.getElementById('leanRed');
         const safeRedEl = document.getElementById('safeRed');
+
+        // Track total moves
+        let totalMoves = 0;
+        let movesHistory = [];
+
+        // Tipping point tracking
+        let tippingPointCounts = {};  // state -> count of times as tipping point
+        let currentTippingPoint = null;
+        let lastTippingPoint = null;
+        let isAlgorithmRunning = false;
         
         // History for sparklines (last 20 values)
         const SPARKLINE_LENGTH = 20;
@@ -941,7 +1101,9 @@
 
             // Update value by key
             updateItem(key, valueHtml, color = null) {
-                const item = this.container.querySelector(`[data-key="${key}"] .mini-stat-value`);
+                // Try both mini-stat-value and stat-value classes
+                let item = this.container.querySelector(`[data-key="${key}"] .mini-stat-value`);
+                if (!item) item = this.container.querySelector(`[data-key="${key}"] .stat-value`);
                 if (item) {
                     item.innerHTML = valueHtml;
                     if (color) item.style.color = color;
@@ -949,21 +1111,21 @@
             }
         }
 
-        // Initialize carousels (will be done after DOM ready)
-        let statesCarousel = null;
-
         // Calculate dashboard metrics
         function calculateDashboardMetrics() {
             const states = Object.keys(stateLeans);
             let swingCount = 0;
+            let swingEVs = 0;
             let safeD = 0, leanD = 0, tossup = 0, leanR = 0, safeR = 0;
 
             for (const state of states) {
                 const lean = stateLeans[state] || 0;
                 const absLean = Math.abs(lean);
+                const ev = stateEVs[state] || 0;
 
                 if (absLean <= 0.05) {
                     swingCount++;
+                    swingEVs += ev;
                     tossup++;
                 } else if (lean < -0.15) {
                     safeD++;
@@ -1013,6 +1175,7 @@
 
             return {
                 swingCount,
+                swingEVs,
                 evMarginValue,
                 evWinner,
                 categories: { safeD, leanD, tossup, leanR, safeR },
@@ -1113,25 +1276,169 @@
             if (leanRedEl) leanRedEl.textContent = metrics.categories.leanR;
             if (safeRedEl) safeRedEl.textContent = metrics.categories.safeR;
 
-            // Update state count
-            if (stateCountEl) stateCountEl.textContent = metrics.stateCount;
+            // Update swing EVs
+            if (swingEVsEl) swingEVsEl.textContent = metrics.swingEVs;
 
-            // Update carousel items
-            if (statesCarousel) {
+            // Update tipping point
+            updateTippingPoint();
+
+            // Update vertical EV bar
+            updateVerticalEVBar();
+
+            // Update EV carousel
+            if (evCarousel) {
                 const pv = metrics.popVote;
+                evCarousel.updateItem('demshare2', pv.demPct.toFixed(1) + '%', '#3b82f6');
+                evCarousel.updateItem('repshare2', pv.repPct.toFixed(1) + '%', '#ef4444');
+            }
 
-                // Dem share
-                statesCarousel.updateItem('demshare', pv.demPct.toFixed(1) + '%', '#3b82f6');
+            // Update moves sparkline
+            movesHistory.push(totalMoves);
+            if (movesHistory.length > SPARKLINE_LENGTH) movesHistory.shift();
+            updateSparklineColored(movesSparkline, movesHistory, Math.max(...movesHistory, 100), metrics.evWinner);
+        }
 
-                // Rep share
-                statesCarousel.updateItem('repshare', pv.repPct.toFixed(1) + '%', '#ef4444');
+        // Update vertical EV bar
+        function updateVerticalEVBar() {
+            const totalEV = election.r_ev + election.d_ev;
+            const demPct = totalEV > 0 ? (election.d_ev / totalEV) * 100 : 50;
+            const repPct = totalEV > 0 ? (election.r_ev / totalEV) * 100 : 50;
 
-                // Margin with winner color
-                const marginColor = pv.winner === 'dem' ? '#3b82f6' : pv.winner === 'rep' ? '#ef4444' : '#a855f7';
-                const marginLabel = pv.winner === 'dem' ? 'D+' : pv.winner === 'rep' ? 'R+' : '';
-                statesCarousel.updateItem('margin', marginLabel + pv.margin.toFixed(1) + '%', marginColor);
+            if (evDemBarV) evDemBarV.style.height = demPct + '%';
+            if (evRepBarV) evRepBarV.style.height = repPct + '%';
+            if (evDemVEl) evDemVEl.textContent = election.d_ev;
+            if (evRepVEl) evRepVEl.textContent = election.r_ev;
+
+            // Update winner
+            const winner = election.d_ev > election.r_ev ? 'DEM' : election.r_ev > election.d_ev ? 'GOP' : 'TIE';
+            if (winnerVEl) {
+                winnerVEl.textContent = winner;
+                winnerVEl.className = 'stat-value ' + (winner === 'DEM' ? 'dem' : winner === 'GOP' ? 'rep' : 'purple');
+            }
+
+            // Update EV margin
+            const margin = Math.abs(election.d_ev - election.r_ev);
+            if (evMarginVEl) {
+                evMarginVEl.textContent = margin;
+                evMarginVEl.className = 'stat-value ' + (election.d_ev > election.r_ev ? 'dem' : election.r_ev > election.d_ev ? 'rep' : 'purple');
             }
         }
+
+        // Calculate tipping point state
+        function calculateTippingPoint() {
+            const winner = election.d_ev > election.r_ev ? 'dem' : election.r_ev > election.d_ev ? 'rep' : 'tie';
+            if (winner === 'tie') return null;
+
+            const states = Object.keys(stateLeans);
+
+            // Build array of states with their EVs and margin for the winner
+            const statesData = states.map(state => {
+                const lean = stateLeans[state] || 0;
+                const ev = stateEVs[state] || 0;
+                // winnerMargin: positive = good for winner, negative = bad for winner
+                // If dem wins, negative lean is good (dem-leaning)
+                // If rep wins, positive lean is good (rep-leaning)
+                const winnerMargin = winner === 'dem' ? -lean : lean;
+                return { state, ev, lean, winnerMargin };
+            });
+
+            // Sort by winner's margin (safest states first)
+            statesData.sort((a, b) => b.winnerMargin - a.winnerMargin);
+
+            // Sum EVs until we hit 270
+            let evSum = 0;
+            for (const s of statesData) {
+                evSum += s.ev;
+                if (evSum >= 270) {
+                    return { state: s.state, lean: s.lean, margin: s.winnerMargin, ev: s.ev };
+                }
+            }
+            return null;
+        }
+
+        // Update tipping point display
+        function updateTippingPoint() {
+            const tipping = calculateTippingPoint();
+
+            if (!tipping) {
+                if (tippingStateEl) tippingStateEl.textContent = '-';
+                return;
+            }
+
+            currentTippingPoint = tipping.state;
+
+            // Increment count for this state (only when algorithm is running)
+            if (isAlgorithmRunning) {
+                tippingPointCounts[tipping.state] = (tippingPointCounts[tipping.state] || 0) + 1;
+            }
+
+            // Update display
+            if (tippingStateEl) {
+                tippingStateEl.textContent = tipping.state;
+                // Color based on lean
+                const lean = tipping.lean;
+                if (Math.abs(lean) <= 0.05) {
+                    tippingStateEl.style.color = '#a855f7';
+                } else if (lean < 0) {
+                    tippingStateEl.style.color = '#3b82f6';
+                } else {
+                    tippingStateEl.style.color = '#ef4444';
+                }
+            }
+
+            // Update subtitle with margin
+            if (tippingSubtitleEl) {
+                const marginPct = Math.abs(tipping.margin * 100).toFixed(1);
+                const party = tipping.lean < 0 ? 'D' : tipping.lean > 0 ? 'R' : '';
+                tippingSubtitleEl.textContent = `${tipping.ev} EVs • ${party}+${marginPct}%`;
+            }
+
+            // Pulse effect if tipping point changed
+            if (lastTippingPoint !== currentTippingPoint && lastTippingPoint !== null) {
+                if (tippingCard) {
+                    tippingCard.classList.add('pulse');
+                    setTimeout(() => tippingCard.classList.remove('pulse'), 500);
+                }
+            }
+            lastTippingPoint = currentTippingPoint;
+
+            // Update histogram
+            updateTippingHistogram();
+        }
+
+        // Update tipping point histogram (vertical bars)
+        function updateTippingHistogram() {
+            if (!tippingHistogram) return;
+
+            // Get top 5 states by count
+            const sorted = Object.entries(tippingPointCounts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
+
+            if (sorted.length === 0) {
+                tippingHistogram.innerHTML = '';
+                return;
+            }
+
+            const maxCount = sorted[0][1];
+
+            tippingHistogram.innerHTML = sorted.map(([state, count]) => {
+                const height = Math.max(4, (count / maxCount) * 38);
+                const lean = stateLeans[state] || 0;
+                const leanClass = Math.abs(lean) <= 0.05 ? 'tossup' : lean < 0 ? 'dem' : 'rep';
+                const isCurrent = state === currentTippingPoint;
+
+                return `
+                    <div class="tipping-col">
+                        <div class="tipping-bar ${leanClass}${isCurrent ? ' current' : ''}" style="height: ${height}px"></div>
+                        <span class="tipping-label">${state}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Initialize EV carousel
+        let evCarousel = null;
 
         const iterationsInput = document.getElementById('iterations');
         const renderEveryInput = document.getElementById('renderEvery');
@@ -1179,30 +1486,6 @@
         const getMode = setupKwaySelector('modeKway', (value) => {
             selectedMode = value;
         });
-
-        // Update election display
-        function updateElectionDisplay() {
-            const totalEV = election.r_ev + election.d_ev;
-            const demPct = totalEV > 0 ? (election.d_ev / totalEV) * 100 : 50;
-            const repPct = totalEV > 0 ? (election.r_ev / totalEV) * 100 : 50;
-
-            if (evDemBar) evDemBar.style.width = demPct + '%';
-            if (evRepBar) evRepBar.style.width = repPct + '%';
-            if (evDemEl) evDemEl.textContent = election.d_ev;
-            if (evRepEl) evRepEl.textContent = election.r_ev;
-
-            // Update EV margin
-            const margin = Math.abs(election.d_ev - election.r_ev);
-            if (evMarginEl) evMarginEl.textContent = margin;
-
-            // Update winner display
-            if (winnerEl) {
-                winnerEl.textContent = election.winner === 'Democratic' ? 'DEM' : 
-                                       election.winner === 'Republican' ? 'GOP' : 'TIE';
-                winnerEl.style.color = election.winner === 'Democratic' ? '#3b82f6' : 
-                                       election.winner === 'Republican' ? '#ef4444' : '#a855f7';
-            }
-        }
 
         // Convert partisan lean (-1 to 1) to color (blue to red)
         function leanToColor(lean) {
@@ -1632,12 +1915,13 @@
                 loadingState.style.display = 'none';
                 canvas.style.display = 'block';
                 if (floatingControls) floatingControls.style.display = 'flex';
+                if (floatingEV) floatingEV.style.display = 'flex';
                 if (dashboard) dashboard.style.display = 'grid';
 
                 // Initialize carousels
-                statesCarousel = new StatCarousel('statesCarousel', 5000);
+                evCarousel = new StatCarousel('evCarousel', 4000);
 
-                updateElectionDisplay();
+                updateVerticalEVBar();
                 updateDashboard();
 
             } catch (err) {
@@ -1656,11 +1940,19 @@
             }
             if (data.election) {
                 election = data.election;
-                updateElectionDisplay();
             }
             if (data.score !== undefined) {
                 currentScore = data.score;
             }
+
+            // Track total moves (estimate based on generation)
+            if (data.moves !== undefined) {
+                totalMoves = data.moves;
+            } else if (data.generation) {
+                totalMoves = data.generation;
+            }
+            if (totalMovesEl) totalMovesEl.textContent = totalMoves.toLocaleString();
+
             render();
 
             // Update brainrot dashboard
@@ -1675,12 +1967,14 @@
         });
 
         socket.on('algorithm_started', (data) => {
+            isAlgorithmRunning = true;
         });
 
         socket.on('algorithm_complete', () => {
             startBtn.disabled = false;
             stopBtn.disabled = true;
             if (iterBox) iterBox.classList.remove('running');
+            isAlgorithmRunning = false;
         });
 
         socket.on('error', (data) => {
@@ -1688,6 +1982,7 @@
             startBtn.disabled = false;
             stopBtn.disabled = true;
             if (iterBox) iterBox.classList.remove('running');
+            isAlgorithmRunning = false;
         });
 
         // Button handlers
@@ -1701,6 +1996,7 @@
             startBtn.disabled = true;
             stopBtn.disabled = false;
             if (iterBox) iterBox.classList.add('running');
+            isAlgorithmRunning = true;
         };
 
         stopBtn.onclick = () => {
@@ -1708,6 +2004,7 @@
             startBtn.disabled = false;
             stopBtn.disabled = true;
             if (iterBox) iterBox.classList.remove('running');
+            isAlgorithmRunning = false;
         };
 
         const resetBtn = document.getElementById('resetBtn');
@@ -1725,8 +2022,24 @@
                 updateStateCountyCounts();
             }
             if (data.stateLeans) stateLeans = data.stateLeans;
+            if (data.election) election = data.election;
+
+            // Reset tracking
+            totalMoves = 0;
+            movesHistory = [];
+            if (totalMovesEl) totalMovesEl.textContent = '0';
+
+            // Reset tipping point tracking
+            tippingPointCounts = {};
+            currentTippingPoint = null;
+            lastTippingPoint = null;
+            isAlgorithmRunning = false;
+            if (tippingHistogram) tippingHistogram.innerHTML = '';
+
             render();
             iterationEl.textContent = '0';
+            updateVerticalEVBar();
+            updateDashboard();
         });
 
         // Initialize Lucide icons
