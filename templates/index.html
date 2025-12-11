@@ -1069,15 +1069,15 @@
                                 </div>
                                 <div class="mini-stat">
                                     <div class="mini-stat-value" id="leanBlue">0</div>
-                                    <div class="mini-stat-label">Lean D</div>
+                                    <div class="mini-stat-label">Likely D</div>
                                 </div>
                                 <div class="mini-stat">
                                     <div class="mini-stat-value" id="tossup">0</div>
-                                    <div class="mini-stat-label">Tossup</div>
+                                    <div class="mini-stat-label">Tossup/Leans</div>
                                 </div>
                                 <div class="mini-stat">
                                     <div class="mini-stat-value" id="leanRed">0</div>
-                                    <div class="mini-stat-label">Lean R</div>
+                                    <div class="mini-stat-label">Likely R</div>
                                 </div>
                                 <div class="mini-stat">
                                     <div class="mini-stat-value" id="safeRed">0</div>
@@ -1398,30 +1398,67 @@
             areaEl.setAttribute('d', linePath + `L${lastX},${height}L${firstX},${height}Z`);
         }
 
-        // Update partisan histogram
+        // Update partisan histogram with 20 non-uniform bins
+        // Bin edges (from center out): 0, 0.5, 1, 2, 4, 6, 10, 15, 22, 30, 100
+        // Mirrored for both D and R sides
         function updateHistogram() {
             if (!partisanHistogram) return;
-            const bins = new Array(21).fill(0);
+
+            // Bin edges as percentages (will divide by 100 for lean values)
+            const edges = [0, 0.5, 1, 2, 4, 6, 10, 15, 22, 30, 100];
+            // 10 bins per side = 20 total
+            const bins = new Array(20).fill(0);
 
             for (const state of Object.keys(stateLeans)) {
-                const lean = stateLeans[state] || 0;
-                const binIdx = Math.min(20, Math.max(0, Math.floor((lean + 1) * 10)));
+                const lean = (stateLeans[state] || 0) * 100; // Convert to percentage
+
+                // Find which bin this lean falls into
+                let binIdx;
+                if (lean <= 0) {
+                    // D side (bins 0-9, where 9 is closest to center)
+                    const absLean = Math.abs(lean);
+                    for (let i = 0; i < 10; i++) {
+                        if (absLean >= edges[10 - i - 1] && absLean < edges[10 - i]) {
+                            binIdx = i;
+                            break;
+                        }
+                    }
+                    if (binIdx === undefined) binIdx = 0; // Safe D (>30%)
+                } else {
+                    // R side (bins 10-19, where 10 is closest to center)
+                    for (let i = 0; i < 10; i++) {
+                        if (lean >= edges[i] && lean < edges[i + 1]) {
+                            binIdx = 10 + i;
+                            break;
+                        }
+                    }
+                    if (binIdx === undefined) binIdx = 19; // Safe R (>30%)
+                }
                 bins[binIdx]++;
             }
 
             const maxBin = Math.max(...bins, 1);
 
-            partisanHistogram.innerHTML = bins.map((count, i) => {
-                const lean = (i - 10) / 10;
-                let color;
-                if (lean < -0.15) color = '#2563eb';
-                else if (lean < -0.05) color = '#60a5fa';
-                else if (lean < 0.05) color = '#a855f7';
-                else if (lean < 0.15) color = '#f87171';
-                else color = '#dc2626';
+            // Colors: bins 0-1 safe D, 2-3 likely D, 4-7 lean D, 8-11 tossup, 12-15 lean R, 16-17 likely R, 18-19 safe R
+            const getColor = (i) => {
+                if (i < 2) return '#2563eb';      // Safe D
+                if (i < 4) return '#3b82f6';      // Likely D (between safe and lean)
+                if (i < 8) return '#60a5fa';      // Lean D
+                if (i < 12) return '#a855f7';     // Tossup
+                if (i < 16) return '#f87171';     // Lean R
+                if (i < 18) return '#ef4444';     // Likely R (between lean and safe)
+                return '#dc2626';                  // Safe R
+            };
 
+            // Flex widths proportional to bin range size
+            // edges diffs: 0.5, 0.5, 1, 2, 2, 4, 5, 7, 8, 70 (but cap the last one)
+            const flexWidths = [5, 5, 4, 4, 3, 2, 2, 1, 1, 1, 1,1, 1, 2, 2, 3, 4, 4, 5, 5];
+
+            partisanHistogram.innerHTML = bins.map((count, i) => {
                 const height = Math.max(2, (count / maxBin) * 90);
-                return `<div class="hist-bar" style="height: ${height}px; background: ${color};"></div>`;
+                const color = getColor(i);
+                const flex = flexWidths[i];
+                return `<div class="hist-bar" style="height: ${height}px; background: ${color}; flex: ${flex};"></div>`;
             }).join('');
         }
 
@@ -2075,12 +2112,12 @@
                 if (colorMode === 'county-partisan') {
                     // Each county colored by its own partisan lean
                     const lean = partisanLean[geoid];
-                    color = lean !== undefined ? leanToColor(lean) : '#cccccc';
+                    color = lean !== undefined ? leanToColor(lean * 2) : '#cccccc';
                 } else if (colorMode === 'state-partisan') {
                     // Each county colored by its state's average partisan lean
                     const state = countyToState[geoid];
                     const lean = state ? stateLeans[state] : undefined;
-                    color = lean !== undefined ? leanToColor(lean) : '#cccccc';
+                    color = lean !== undefined ? leanToColor(lean * 2) : '#cccccc';
                 } else {
                     // Unique state colors
                     const colorIdx = countyColors[geoid];
