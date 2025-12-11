@@ -4,11 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>US Border Redistricting Simulation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geom:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: "Geom", sans-serif;
+            font-optical-sizing: auto;
+            font-weight: 400;
+            font-style: normal;
             background: #1a1a2e;
             color: #eee;
             min-height: 100vh;
@@ -18,17 +24,17 @@
         .header { text-align: center; padding: 20px; margin-bottom: 30px; }
         .header h1 { font-size: 2.5em; margin-bottom: 10px; color: #fff; }
         .header p { font-size: 1.1em; color: #aaa; }
-        .main { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
+        .main { display: grid; grid-template-columns: 200px 1fr; gap: 20px; }
         .controls {
             background: linear-gradient(180deg, #252542 0%, #1a1a2e 100%);
-            padding: 20px;
+            padding: 15px;
             border-radius: 12px;
             height: fit-content;
             border: 1px solid #333;
             box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         }
 
-        .control-group { margin-bottom: 18px; }
+        .control-group { margin-bottom: 12px; }
         .control-group label {
             display: block;
             font-weight: 500;
@@ -41,12 +47,12 @@
         .control-group input[type="number"],
         .control-group select {
             width: 100%;
-            padding: 12px 14px;
+            padding: 10px 12px;
             background: linear-gradient(135deg, #1a1a2e 0%, #252542 100%);
             border: 1px solid #444;
-            border-radius: 8px;
+            border-radius: 6px;
             color: #fff;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
             transition: all 0.3s ease;
             outline: none;
@@ -67,16 +73,16 @@
 
         .buttons {
             display: flex;
-            gap: 8px;
-            margin-bottom: 18px;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 12px;
         }
         button {
-            flex: 1;
-            padding: 14px 10px;
-            font-size: 13px;
+            padding: 10px 10px;
+            font-size: 11px;
             font-weight: 700;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             transition: all 0.2s ease;
             text-transform: uppercase;
@@ -100,29 +106,29 @@
         #startBtn {
             background: linear-gradient(135deg, #00d4ff 0%, #0088ff 100%);
             color: #000;
-            box-shadow: 0 4px 15px rgba(0,212,255,0.3);
+            box-shadow: 0 2px 10px rgba(0,212,255,0.3);
         }
         #startBtn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0,212,255,0.4);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(0,212,255,0.4);
         }
         #stopBtn {
             background: linear-gradient(135deg, #ff4757 0%, #ff2d3a 100%);
             color: #fff;
-            box-shadow: 0 4px 15px rgba(255,71,87,0.3);
+            box-shadow: 0 2px 10px rgba(255,71,87,0.3);
         }
         #stopBtn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255,71,87,0.4);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(255,71,87,0.4);
         }
         #resetBtn {
             background: linear-gradient(135deg, #ffa500 0%, #ff8c00 100%);
             color: #000;
-            box-shadow: 0 4px 15px rgba(255,165,0,0.3);
+            box-shadow: 0 2px 10px rgba(255,165,0,0.3);
         }
         #resetBtn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255,165,0,0.4);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(255,165,0,0.4);
         }
         button:disabled {
             opacity: 0.3;
@@ -134,49 +140,27 @@
             transform: translateY(0);
         }
 
-        .status-box {
+        /* Iteration counter in sidebar */
+        .iter-box {
             background: linear-gradient(135deg, #1a1a2e 0%, #252542 100%);
-            padding: 14px;
+            padding: 12px;
             border-radius: 8px;
-            margin-bottom: 12px;
+            margin-bottom: 15px;
             border: 1px solid #333;
-            position: relative;
-            overflow: hidden;
+            text-align: center;
         }
-        .status-box::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, #00d4ff, #a855f7, #00d4ff);
-            background-size: 200% 100%;
-            animation: shimmer 2s linear infinite;
-        }
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
-        }
-        .status-label {
+        .iter-box .iter-label {
             font-size: 9px;
             color: #666;
             text-transform: uppercase;
             letter-spacing: 2px;
             margin-bottom: 4px;
         }
-        .status-value {
-            font-size: 15px;
+        .iter-box .iter-value {
+            font-size: 28px;
             color: #00d4ff;
-            font-weight: 600;
-            font-family: 'Courier New', monospace;
-        }
-        .status-value.running {
-            animation: pulse-text 1s ease-in-out infinite;
-        }
-        @keyframes pulse-text {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
+            font-weight: 700;
+            text-shadow: 0 0 10px rgba(0,212,255,0.4);
         }
         .viz {
             background: #252542;
@@ -206,30 +190,6 @@
         }
         /* Brainrot Dashboard */
         .viz-container { position: relative; width: fit-content; margin: 0 auto; }
-        
-        .iteration-overlay {
-            position: absolute;
-            top: 10px;
-            left: -100px;
-            z-index: 100;
-            font-family: 'Courier New', monospace;
-            background: rgba(0,0,0,0.6);
-            padding: 8px 12px;
-            border-radius: 4px;
-            border: 1px solid #333;
-        }
-        .iteration-overlay .iter-label {
-            font-size: 9px;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-        .iteration-overlay .iter-value {
-            font-size: 24px;
-            color: #00d4ff;
-            text-shadow: 0 0 10px rgba(0,212,255,0.5);
-            font-weight: bold;
-        }
         
         .dashboard {
             display: grid;
@@ -451,14 +411,18 @@
 
         <div class="main">
             <div class="controls">
+                <div class="iter-box">
+                    <div class="iter-label">Iteration</div>
+                    <div class="iter-value" id="iteration">0</div>
+                </div>
 
                 <div class="control-group">
-                    <label>Iterations</label>
+                    <label>Total Iterations</label>
                     <input type="number" id="iterations" min="100" max="150000" value="5000" step="100">
                 </div>
 
                 <div class="control-group">
-                    <label>Update Frequency</label>
+                    <label>Update Every</label>
                     <input type="number" id="renderEvery" min="1" max="500" value="25" step="1">
                 </div>
 
@@ -492,13 +456,8 @@
 
                 <div class="buttons">
                     <button id="startBtn">Play</button>
-                    <button id="stopBtn" disabled>Stop</button>
+                    <button id="stopBtn" disabled>Pause</button>
                     <button id="resetBtn">Reset</button>
-                </div>
-
-                <div class="status-box">
-                    <div class="status-label">Status</div>
-                    <div class="status-value" id="statusText">Loading...</div>
                 </div>
             </div>
 
@@ -509,10 +468,6 @@
                 </div>
                 <div class="viz-container">
                     <canvas id="mapCanvas" style="display: none;"></canvas>
-                    <div class="iteration-overlay" id="iterOverlay" style="display: none;">
-                        <div class="iter-label">ITERATION</div>
-                        <div class="iter-value" id="iteration">0</div>
-                    </div>
                 </div>
                 
                 <div class="dashboard" id="dashboard" style="display: none;">
@@ -622,10 +577,8 @@
         const startBtn = document.getElementById('startBtn');
         const stopBtn = document.getElementById('stopBtn');
         const loadingState = document.getElementById('loadingState');
-        const statusText = document.getElementById('statusText');
         // Dashboard elements
         const iterationEl = document.getElementById('iteration');
-        const iterOverlay = document.getElementById('iterOverlay');
         const dashboard = document.getElementById('dashboard');
         const winnerEl = document.getElementById('winner');
         const evDemBar = document.getElementById('evDemBar');
@@ -1279,11 +1232,9 @@
                 // Show canvas
                 loadingState.style.display = 'none';
                 canvas.style.display = 'block';
-                if (iterOverlay) iterOverlay.style.display = 'block';
                 if (dashboard) dashboard.style.display = 'grid';
                 updateElectionDisplay();
                 updateDashboard();
-                statusText.textContent = 'Ready';
 
             } catch (err) {
                 console.error('Init error:', err);
@@ -1323,13 +1274,12 @@
         });
 
         socket.on('algorithm_complete', () => {
-            statusText.textContent = 'Complete';
             startBtn.disabled = false;
             stopBtn.disabled = true;
         });
 
         socket.on('error', (data) => {
-            statusText.textContent = 'Error: ' + data.message;
+            console.error('Error:', data.message);
             startBtn.disabled = false;
             stopBtn.disabled = true;
         });
@@ -1344,17 +1294,12 @@
             });
             startBtn.disabled = true;
             stopBtn.disabled = false;
-            const modeLabel = modeSelect.value === 'follow_the_leader' ? 'FTL' : 
-                             modeSelect.value === 'bfs' ? 'BFS' :
-                             modeSelect.value === 'dfs' ? 'DFS' : 'Std';
-            statusText.textContent = 'Running (' + targetSelect.value + ', ' + modeLabel + ')';
         };
 
         stopBtn.onclick = () => {
             socket.emit('stop_algorithm');
             startBtn.disabled = false;
             stopBtn.disabled = true;
-            statusText.textContent = 'Stopped';
         };
 
         const resetBtn = document.getElementById('resetBtn');
@@ -1362,7 +1307,6 @@
             socket.emit('reset_algorithm');
             startBtn.disabled = false;
             stopBtn.disabled = true;
-            statusText.textContent = 'Resetting...';
         };
 
         socket.on('reset_complete', (data) => {
@@ -1374,7 +1318,6 @@
             if (data.stateLeans) stateLeans = data.stateLeans;
             render();
             iterationEl.textContent = '0';
-            statusText.textContent = 'Ready';
         });
 
         // Start
