@@ -590,13 +590,13 @@
         /* Tipping Point Histogram (positioned top-right) */
         .tipping-histogram {
             position: absolute;
-            top: 8px;
-            right: 8px;
+            top: -6px;
+            right: 6px;
             display: flex;
             align-items: flex-end;
             justify-content: flex-end;
-            height: 50px;
-            gap: 3px;
+            height: 140px;
+            gap: 2px;
         }
         .tipping-col {
             display: flex;
@@ -605,33 +605,36 @@
             gap: 1px;
         }
         .tipping-bar {
-            width: 14px;
+            width: 16px;
             border-radius: 2px 2px 0 0;
-            min-height: 2px;
+            min-height: 3px;
             transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease;
         }
-        .tipping-bar.dem { background: linear-gradient(to top, #2563eb, #3b82f6); }
-        .tipping-bar.rep { background: linear-gradient(to top, #dc2626, #ef4444); }
-        .tipping-bar.tossup { background: linear-gradient(to top, #7c3aed, #a855f7); }
         .tipping-bar.current {
-            box-shadow: 0 0 10px currentColor;
+            box-shadow: 0 0 8px rgba(255,255,255,0.6);
             animation: tipping-glow 1s ease-in-out infinite;
         }
-        .tipping-bar.dem.current { color: #3b82f6; }
-        .tipping-bar.rep.current { color: #ef4444; }
-        .tipping-bar.tossup.current { color: #a855f7; }
         @keyframes tipping-glow {
-            0%, 100% { opacity: 1; box-shadow: 0 0 10px currentColor; }
-            50% { opacity: 0.8; box-shadow: 0 0 20px currentColor; }
+            0%, 100% { opacity: 1; box-shadow: 0 0 8px rgba(255,255,255,0.6); }
+            50% { opacity: 0.85; box-shadow: 0 0 12px rgba(255,255,255,0.8); }
         }
         .tipping-label {
-            font-size: 7px;
+            font-size: 9px;
             font-weight: 600;
-            color: #666;
+            color: #888;
             text-align: center;
+            line-height: 1;
+        }
+        .tipping-count {
+            font-size: 8px;
+            color: #666;
+            line-height: 1;
         }
         #tippingCard {
             position: relative;
+        }
+        #tippingCard .dash-value {
+            font-size: 26px;
         }
         #tippingCard.pulse .dash-value {
             animation: tipping-flash 0.5s ease-out;
@@ -1372,9 +1375,10 @@
                 tippingPointCounts[tipping.state] = (tippingPointCounts[tipping.state] || 0) + 1;
             }
 
-            // Update display
+            // Update display with full state name
             if (tippingStateEl) {
-                tippingStateEl.textContent = tipping.state;
+                const fullName = stateNames[tipping.state] || tipping.state;
+                tippingStateEl.textContent = fullName;
                 // Color based on lean
                 const lean = tipping.lean;
                 if (Math.abs(lean) <= 0.05) {
@@ -1410,10 +1414,10 @@
         function updateTippingHistogram() {
             if (!tippingHistogram) return;
 
-            // Get top 5 states by count
+            // Get top 35 states by count
             const sorted = Object.entries(tippingPointCounts)
                 .sort((a, b) => b[1] - a[1])
-                .slice(0, 5);
+                .slice(0, 35);
 
             if (sorted.length === 0) {
                 tippingHistogram.innerHTML = '';
@@ -1423,15 +1427,16 @@
             const maxCount = sorted[0][1];
 
             tippingHistogram.innerHTML = sorted.map(([state, count]) => {
-                const height = Math.max(4, (count / maxCount) * 38);
+                const height = Math.max(5, (count / maxCount) * 100);
                 const lean = stateLeans[state] || 0;
-                const leanClass = Math.abs(lean) <= 0.05 ? 'tossup' : lean < 0 ? 'dem' : 'rep';
+                const color = leanToColor(lean * 25);
                 const isCurrent = state === currentTippingPoint;
 
                 return `
                     <div class="tipping-col">
-                        <div class="tipping-bar ${leanClass}${isCurrent ? ' current' : ''}" style="height: ${height}px"></div>
+                        <div class="tipping-bar${isCurrent ? ' current' : ''}" style="height: ${height}px; background: ${color};"></div>
                         <span class="tipping-label">${state}</span>
+                        <span class="tipping-count">${count}</span>
                     </div>
                 `;
             }).join('');
