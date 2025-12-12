@@ -175,14 +175,96 @@ last_moved_county = None
 traversal_frontier = []  # list of counties to explore
 traversal_visited = set()  # counties already taken
 
+# Track rejected moves for smart exploration (max heap via negative scores)
+import heapq
+rejected_moves_heap = []  # list of (-score, pivot_county, state_to_grow, from_state)
+iterations_since_exchange = 0
+
 
 def reset_follow_the_leader():
     """Reset the leader state and traversal state."""
     global follow_the_leader_state, last_moved_county, traversal_frontier, traversal_visited
+    global rejected_moves_heap, iterations_since_exchange
     follow_the_leader_state = None
     last_moved_county = None
     traversal_frontier = []
     traversal_visited = set()
+    rejected_moves_heap = []
+    iterations_since_exchange = 0
+
+
+def _reset_rejected_tracking():
+    """Reset rejected moves tracking after a successful exchange."""
+    global rejected_moves_heap, iterations_since_exchange
+    rejected_moves_heap = []
+    iterations_since_exchange = 0
+
+
+def _add_rejected_move(score, pivot_county, state_to_grow, from_state):
+    """Add a rejected move to the heap and trim to max size."""
+    global rejected_moves_heap, iterations_since_exchange
+    heapq.heappush(rejected_moves_heap, (-score, pivot_county, state_to_grow, from_state))
+
+    # Trim to keep only best `iterations_since_exchange` moves
+    # Since we use negative scores, smallest = best. We want to remove worst (largest/least negative)
+    if len(rejected_moves_heap) > iterations_since_exchange:
+        # Convert to list, sort (best first = most negative), keep best N, re-heapify
+        items = list(rejected_moves_heap)
+        items.sort()  # Most negative (best) first
+        rejected_moves_heap = items[:iterations_since_exchange]
+        heapq.heapify(rejected_moves_heap)
+
+
+def _try_execute_best_reject(target):
+    """
+    Try to execute the best rejected move that is still valid.
+    Returns True if successful, False otherwise.
+    """
+    global rejected_moves_heap
+
+    while rejected_moves_heap:
+        neg_score, pivot_county, state_to_grow, from_state = heapq.heappop(rejected_moves_heap)
+
+        # Check if this move is still valid:
+        # 1. pivot_county still belongs to from_state
+        if county_to_state.get(pivot_county) != from_state:
+            continue  # County has moved, skip
+
+        # 2. pivot_county is still adjacent to state_to_grow
+        if pivot_county not in state_to_bordering_counties.get(state_to_grow, set()):
+            continue  # No longer adjacent, skip
+
+        # Try the move
+        state_to_counties[from_state].remove(pivot_county)
+        state_to_counties[state_to_grow].add(pivot_county)
+        county_to_state[pivot_county] = state_to_grow
+
+        # Check contiguity
+        if not _is_state_contiguous(from_state):
+            # Undo
+            state_to_counties[state_to_grow].remove(pivot_county)
+            state_to_counties[from_state].add(pivot_county)
+            county_to_state[pivot_county] = from_state
+            continue
+
+        # Update state
+        compute_state_to_bordering_counties()
+        compute_state_to_partisan_lean()
+
+        # Check population conditions
+        if not _population_conditions_met():
+            # Undo
+            state_to_counties[state_to_grow].remove(pivot_county)
+            state_to_counties[from_state].add(pivot_county)
+            county_to_state[pivot_county] = from_state
+            compute_state_to_bordering_counties()
+            compute_state_to_partisan_lean()
+            continue
+
+        # Success! Move is executed and state is updated
+        return True
+
+    return False
 
 
 def sample_adjacent_county_excluding(state, exclude_county):
@@ -199,13 +281,15 @@ def sample_adjacent_county_excluding(state, exclude_county):
     return np.random.choice(candidates, p=county_weights)
 
 
-def iteration_greedy(target='Republican', mode='standard'):
+def iteration_greedy(target='Republican', mode='standard', alpha=0.001):
     """
     Stochastic hill-climb with different traversal modes.
     target: 'Republican', 'Democratic', or 'Tie'
     mode: 'standard', 'follow_the_leader', 'bfs', or 'dfs'
+    alpha: probability of selecting from best rejected moves instead of random exploration
     """
     global follow_the_leader_state, last_moved_county, traversal_frontier, traversal_visited
+    global iterations_since_exchange
     import random
 
     compute_state_to_partisan_lean()
@@ -304,8 +388,13 @@ def iteration_greedy(target='Republican', mode='standard'):
     compute_state_to_partisan_lean()
     new_score = get_configuration_score(target)
 
-    # Accept if better, otherwise undo
-    if new_score >= current_score and _population_conditions_met():
+    # Check population conditions (with move applied)
+    pop_ok = _population_conditions_met()
+
+    # Accept if score improved AND population conditions met
+    if new_score >= current_score and pop_ok:
+        # Success! Reset rejected tracking
+        _reset_rejected_tracking()
         # Mode-specific bookkeeping on success
         if mode == 'follow_the_leader':
             follow_the_leader_state = from_state
@@ -317,18 +406,34 @@ def iteration_greedy(target='Republican', mode='standard'):
                 if neighbor not in traversal_visited and county_to_state.get(neighbor) != state_to_grow:
                     traversal_frontier.append(neighbor)
         return True
-    else:
-        # Undo the move
-        state_to_counties[state_to_grow].remove(pivot_county)
-        state_to_counties[from_state].add(pivot_county)
-        county_to_state[pivot_county] = from_state
-        compute_state_to_bordering_counties()
-        compute_state_to_partisan_lean()
-        return False
+
+    # Move was worse or population conditions not met - undo it
+    state_to_counties[state_to_grow].remove(pivot_county)
+    state_to_counties[from_state].add(pivot_county)
+    county_to_state[pivot_county] = from_state
+    compute_state_to_bordering_counties()
+    compute_state_to_partisan_lean()
+
+    # If population was OK, this was a valid but worse move - track it for potential future use
+    if pop_ok:
+        iterations_since_exchange += 1
+        _add_rejected_move(new_score, pivot_county, state_to_grow, from_state)
+
+        # With probability alpha, try to execute the best rejected move from the heap
+        if np.random.random() < alpha:
+            if _try_execute_best_reject(target):
+                _reset_rejected_tracking()
+                # Mode-specific bookkeeping for heap-selected move
+                # Note: We don't know which county was moved, so skip follow_the_leader/bfs/dfs bookkeeping
+                return True
+
+    return False
 
 def _population_conditions_met():
     global state_to_counties, county_to_population
     for _, counties in state_to_counties.items():
+        if not counties:
+            return False
         state_pop = sum(county_to_population[county] for county in counties)
         if state_pop < 100000:
             return False
