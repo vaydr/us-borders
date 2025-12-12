@@ -140,6 +140,7 @@ export function setupAllControls() {
         state.setDiffMode(value === 'on');
         if (!state.diffMode) {
             state.setCountyChangeTime({});
+            state.setRejectedCountyChangeTime({});
             if (state.diffAnimationFrame) {
                 cancelAnimationFrame(state.diffAnimationFrame);
                 state.setDiffAnimationFrame(null);

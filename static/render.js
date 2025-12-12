@@ -44,11 +44,20 @@ export function render() {
             ctx.fill(path);
         }
 
-        // White fade for diff mode county changes
+        // White fade for diff mode county changes (accepted)
         if (now && state.countyChangeTime[geoid]) {
             const elapsed = now - state.countyChangeTime[geoid];
             if (elapsed < state.DIFF_FADE_DURATION) {
                 ctx.fillStyle = `rgba(255, 255, 255, ${1 - elapsed / state.DIFF_FADE_DURATION})`;
+                ctx.fill(path);
+            }
+        }
+
+        // Black fade for diff mode county rejections
+        if (now && state.rejectedCountyChangeTime[geoid]) {
+            const elapsed = now - state.rejectedCountyChangeTime[geoid];
+            if (elapsed < state.DIFF_FADE_DURATION) {
+                ctx.fillStyle = `rgba(120, 120, 120, ${1 - elapsed / state.DIFF_FADE_DURATION})`;
                 ctx.fill(path);
             }
         }
@@ -78,11 +87,21 @@ export function diffAnimationLoop() {
     const now = performance.now();
     let hasActiveAnimations = false;
 
+    // Check accepted county animations (white flash)
     for (const geoid in state.countyChangeTime) {
         if (now - state.countyChangeTime[geoid] < state.DIFF_FADE_DURATION) {
             hasActiveAnimations = true;
         } else {
             delete state.countyChangeTime[geoid];
+        }
+    }
+
+    // Check rejected county animations (black flash)
+    for (const geoid in state.rejectedCountyChangeTime) {
+        if (now - state.rejectedCountyChangeTime[geoid] < state.DIFF_FADE_DURATION) {
+            hasActiveAnimations = true;
+        } else {
+            delete state.rejectedCountyChangeTime[geoid];
         }
     }
 

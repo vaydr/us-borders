@@ -32,7 +32,7 @@ export function setupSocketHandlers() {
     });
 
     state.socket.on('color_update', (data) => {
-        const { colors, stateLeans, countyToState, election, score, generation, bestScore, bestIteration } = data;
+        const { colors, stateLeans, countyToState, election, score, generation, bestScore, bestIteration, rejectedCounties } = data;
 
         // Update colors directly (no copy needed)
         state.setCountyColors(colors);
@@ -52,6 +52,14 @@ export function setupSocketHandlers() {
                         state.countyChangeTime[geoid] = now;
                     }
                 }
+
+                // Track rejected counties (black flash)
+                if (rejectedCounties && rejectedCounties.length > 0) {
+                    for (const geoid of rejectedCounties) {
+                        state.rejectedCountyChangeTime[geoid] = now;
+                    }
+                }
+
                 if (!state.diffAnimationFrame) {
                     diffAnimationLoop();
                 }
@@ -128,6 +136,7 @@ export function setupSocketHandlers() {
             state.setCountyToState(countyToState);
             state.setPreviousCountyToState(countyToState);
             state.setCountyChangeTime({});
+            state.setRejectedCountyChangeTime({});
             if (state.diffAnimationFrame) {
                 cancelAnimationFrame(state.diffAnimationFrame);
                 state.setDiffAnimationFrame(null);
@@ -157,6 +166,7 @@ export function setupSocketHandlers() {
             state.setCountyToState(countyToState);
             state.setPreviousCountyToState(Object.assign({}, countyToState));
             state.setCountyChangeTime({});
+            state.setRejectedCountyChangeTime({});
             if (state.diffAnimationFrame) {
                 cancelAnimationFrame(state.diffAnimationFrame);
                 state.setDiffAnimationFrame(null);

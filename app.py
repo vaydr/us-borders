@@ -225,6 +225,7 @@ def start_algorithm(data):
         global is_running, paused_state, best_state
         is_running = True
         heap_used_this_batch = False
+        rejected_counties_batch = set()  # Track rejected counties between updates
 
         try:
             for i in range(start_iteration, iterations):
@@ -245,9 +246,13 @@ def start_algorithm(data):
                     })
                     break
 
-                success, heap_used = my_sim.iteration_greedy(target, mode)
+                success, heap_used, pivot_county = my_sim.iteration_greedy(target, mode)
                 if heap_used:
                     heap_used_this_batch = True
+
+                # Track rejected counties (not accepted and has a pivot)
+                if not success and pivot_county is not None:
+                    rejected_counties_batch.add(str(pivot_county))
 
                 # Send color update every N iterations
                 if (i + 1) % render_every == 0 or (i + 1) == iterations:
@@ -276,8 +281,12 @@ def start_algorithm(data):
                         'election': get_election_results(),
                         'score': score,
                         'bestScore': best_state['score'],
-                        'bestIteration': best_state['iteration']
+                        'bestIteration': best_state['iteration'],
+                        'rejectedCounties': list(rejected_counties_batch)
                     })
+
+                    # Clear rejected counties for next batch
+                    rejected_counties_batch.clear()
             else:
                 # Loop completed without break (not paused)
                 paused_state['iteration'] = 0  # Clear pause state
