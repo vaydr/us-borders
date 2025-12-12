@@ -24,7 +24,7 @@ export let previousCountyToState = {}; // Previous state assignments for diff de
 export let countyChangeTime = {}; // geoid -> timestamp when county last changed (for fade animation)
 export let diffMode = false; // Whether diff highlighting is enabled
 export let diffAnimationFrame = null; // Animation frame ID for diff fade effect
-export const DIFF_FADE_DURATION = 1000; // Fade duration in ms
+export const DIFF_FADE_DURATION = 500; // Fade duration in ms
 export let election = { winner: '-', r_ev: 0, d_ev: 0 };
 export let bounds = null;
 export let transform = null;
@@ -50,8 +50,6 @@ export let currentTippingPoint = null;
 export let lastTippingPoint = null;
 export let isAlgorithmRunning = false;
 
-// Tipping point pulse animation (for diff mode)
-export const TIPPING_PULSE_PERIOD = 1000; // 1 second cycle
 
 // Score tracking
 export let currentScore = 0;

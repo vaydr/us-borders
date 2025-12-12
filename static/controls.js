@@ -1,7 +1,7 @@
 // UI controls - K-way selectors and carousel
 
 import * as state from './state.js';
-import { render, ensureDiffAnimationRunning } from './render.js';
+import { render } from './render.js';
 
 // K-way selector helper
 export function setupKwaySelector(containerId, onChange) {
@@ -139,15 +139,11 @@ export function setupAllControls() {
     const getDiffMode = setupKwaySelector('diffKway', (value) => {
         state.setDiffMode(value === 'on');
         if (!state.diffMode) {
-            // Clear animations when turning off
             state.setCountyChangeTime({});
             if (state.diffAnimationFrame) {
                 cancelAnimationFrame(state.diffAnimationFrame);
                 state.setDiffAnimationFrame(null);
             }
-        } else {
-            // Start animation loop if there's a tipping point to pulse
-            ensureDiffAnimationRunning();
         }
         render();
     });

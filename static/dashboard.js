@@ -2,7 +2,6 @@
 
 import * as state from './state.js';
 import { leanToColor, renderLineChart } from './utils.js';
-import { ensureDiffAnimationRunning } from './render.js';
 
 // DOM elements
 const swingStatesEl = document.getElementById('swingStates');
@@ -228,9 +227,6 @@ export function updateTippingPoint() {
     }
 
     state.setCurrentTippingPoint(tipping.state);
-
-    // Ensure animation loop runs for tipping point pulse
-    ensureDiffAnimationRunning();
 
     // Increment count for this state (only when algorithm is running)
     if (state.isAlgorithmRunning) {
