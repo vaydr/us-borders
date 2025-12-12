@@ -173,9 +173,11 @@ def init_data():
             'side1': algorithm.side1,
             'side1_color': algorithm.color1,
             'side1_abbrev': getattr(algorithm, 'abbrev1', algorithm.side1[:3].upper()),
+            'side1_letter': getattr(algorithm, 'letter1', getattr(algorithm, 'abbrev1', algorithm.side1[:3].upper())[0]),
             'side2': algorithm.side2,
             'side2_color': algorithm.color2,
-            'side2_abbrev': getattr(algorithm, 'abbrev2', algorithm.side2[:3].upper())
+            'side2_abbrev': getattr(algorithm, 'abbrev2', algorithm.side2[:3].upper()),
+            'side2_letter': getattr(algorithm, 'letter2', getattr(algorithm, 'abbrev2', algorithm.side2[:3].upper())[0])
         }
     })
 
@@ -406,17 +408,19 @@ if __name__ == '__main__':
     print("Initializing...")
     print("="*60)
 
-    # Create algorithm instance with configurable sides
-    # You can change these to customize the simulation
+    from generator import generate_from_real_shifted as g
+    augment = g(shift=0.04)
     algorithm = TwoWayAlgorithm(
         side1="Republican",
         color1="red",
         side2="Democrat",
-        color2="blue"
+        color2="blue",
+        augment=augment
     )
-    # Custom abbreviations (optional - defaults to first 3 chars uppercased)
     algorithm.abbrev1 = "GOP"
     algorithm.abbrev2 = "DEM"
+    algorithm.letter1 = "R"
+    algorithm.letter2 = "D"
     
     # Initialize algorithm
     algorithm.compute_state_to_bordering_counties()

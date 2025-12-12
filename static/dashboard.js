@@ -280,9 +280,9 @@ export function updateTippingPoint() {
     // Update subtitle with margin
     if (tippingSubtitleEl) {
         const marginPct = Math.abs(tipping.margin * 100).toFixed(1);
-        const s1Abbr = state.sideConfig.side1_abbrev?.charAt(0) || 'R';
-        const s2Abbr = state.sideConfig.side2_abbrev?.charAt(0) || 'D';
-        const party = tipping.lean < 0 ? s2Abbr : tipping.lean > 0 ? s1Abbr : '';
+        const s1Letter = state.sideConfig.side1_letter || 'R';
+        const s2Letter = state.sideConfig.side2_letter || 'D';
+        const party = tipping.lean < 0 ? s2Letter : tipping.lean > 0 ? s1Letter : '';
         tippingSubtitleEl.textContent = `${tipping.ev} EVs • ${party}+${marginPct}%`;
     }
 
@@ -550,6 +550,14 @@ export function updateDashboard() {
         const side1Color = getComputedStyle(document.documentElement).getPropertyValue('--side1-color').trim() || '#ef4444';
         state.evCarousel.updateItem('side2share', pv.side2Pct.toFixed(1) + '%', side2Color);
         state.evCarousel.updateItem('side1share', pv.side1Pct.toFixed(1) + '%', side1Color);
+
+        // Update margin: {winner_letter}+{margin%}
+        const marginPct = Math.abs(pv.side1Pct - pv.side2Pct).toFixed(1);
+        const winnerLetter = pv.side1Pct > pv.side2Pct
+            ? (state.sideConfig.side1_letter || 'R')
+            : (state.sideConfig.side2_letter || 'D');
+        const marginColor = pv.side1Pct > pv.side2Pct ? side1Color : side2Color;
+        state.evCarousel.updateItem('margin', `${winnerLetter}+${marginPct}%`, marginColor);
     }
 
     // Update score display and line chart

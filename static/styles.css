@@ -771,6 +771,12 @@ body {
 .ev-stat-box.stat-carousel .carousel-dots {
     margin-top: 6px;
 }
+.ev-stat-box.stat-carousel .carousel-item {
+    text-align: center;
+}
+.ev-stat-box.stat-carousel #marginValue {
+    font-size: 22px;
+}
 
 /* Tipping Point Histogram (positioned top-right) */
 .tipping-histogram {

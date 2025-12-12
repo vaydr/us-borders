@@ -108,8 +108,8 @@ function initSideConfig(sideConfig) {
         targetSide2.dataset.value = sideConfig.side2;
         targetSide2.title = `${sideConfig.side2} Victory`;
     }
-    if (targetSide1Icon) targetSide1Icon.textContent = sideConfig.side1_abbrev.charAt(0);
-    if (targetSide2Icon) targetSide2Icon.textContent = sideConfig.side2_abbrev.charAt(0);
+    if (targetSide1Icon) targetSide1Icon.textContent = sideConfig.side1_letter || sideConfig.side1_abbrev.charAt(0);
+    if (targetSide2Icon) targetSide2Icon.textContent = sideConfig.side2_letter || sideConfig.side2_abbrev.charAt(0);
 
     // Update vote share labels
     const side1VoteLabel = document.getElementById('side1VoteLabel');
@@ -123,13 +123,13 @@ function initSideConfig(sideConfig) {
     const safeSide2Label = document.getElementById('safeSide2Label');
     const leanSide2Label = document.getElementById('leanSide2Label');
 
-    const s1Abbr = sideConfig.side1_abbrev.charAt(0);
-    const s2Abbr = sideConfig.side2_abbrev.charAt(0);
+    const s1Letter = sideConfig.side1_letter || sideConfig.side1_abbrev.charAt(0);
+    const s2Letter = sideConfig.side2_letter || sideConfig.side2_abbrev.charAt(0);
 
-    if (safeSide1Label) safeSide1Label.textContent = `Safe ${s1Abbr}`;
-    if (leanSide1Label) leanSide1Label.textContent = `Likely ${s1Abbr}`;
-    if (safeSide2Label) safeSide2Label.textContent = `Safe ${s2Abbr}`;
-    if (leanSide2Label) leanSide2Label.textContent = `Likely ${s2Abbr}`;
+    if (safeSide1Label) safeSide1Label.textContent = `Safe ${s1Letter}`;
+    if (leanSide1Label) leanSide1Label.textContent = `Likely ${s1Letter}`;
+    if (safeSide2Label) safeSide2Label.textContent = `Safe ${s2Letter}`;
+    if (leanSide2Label) leanSide2Label.textContent = `Likely ${s2Letter}`;
 
     // Set default target to side1
     state.setSelectedTarget(sideConfig.side1);
@@ -232,7 +232,7 @@ async function init() {
         if (dashboard) dashboard.style.display = 'grid';
 
         // Initialize carousels
-        state.setEvCarousel(new StatCarousel('evCarousel', 4000));
+        state.setEvCarousel(new StatCarousel('evCarousel', 2500));
 
         updateVerticalEVBar();
         updateDashboard();

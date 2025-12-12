@@ -23,21 +23,32 @@ YEAR = 2020
 class TwoWayAlgorithm:
     """
     Encapsulates all state and logic for the two-way partisan redistricting simulation.
-    
+
     Parameters:
         side1: Name of the first side (e.g., "Republican")
         color1: Color for the first side (e.g., "red")
         side2: Name of the second side (e.g., "Democrat")
         color2: Color for the second side (e.g., "blue")
+        augment: Optional dict of {county_fips: {'side1': votes, 'side2': votes}}
+                 If provided, uses this data for partisan lean calculation instead of
+                 real election data. Vote proportions are scaled by actual county
+                 population from the base election year.
+
+                 Generate augment data using the generator module:
+                     from generator import generate_from_real_shifted
+                     augment = generate_from_real_shifted(2020, shift=0.05)
     """
-    
-    def __init__(self, side1="Republican", color1="red", side2="Democrat", color2="blue"):
+
+    def __init__(self, side1="Republican", color1="red", side2="Democrat", color2="blue", augment=None):
         # Side configuration
         self.side1 = side1
         self.color1 = color1
         self.side2 = side2
         self.color2 = color2
-        
+
+        # Augment data for synthetic elections
+        self.augment = augment
+
         # Core data structures
         self.county_to_neighbors = {}
         self.county_to_state = {}
@@ -47,17 +58,17 @@ class TwoWayAlgorithm:
         self.county_to_population = {}
         self.state_to_partisan_lean = {}
         self.state_to_ev = DEFAULT_STATE_TO_EV.copy()
-        
+
         # Follow-the-leader / traversal state
         self.follow_the_leader_state = None
         self.last_moved_county = None
         self.traversal_frontier = []
         self.traversal_visited = set()
-        
+
         # Rejected moves tracking
         self.rejected_moves_heap = []
         self.iterations_since_exchange = 0
-        
+
         # Load county adjacency data
         self._load_county_adjacency_data()
     
@@ -170,18 +181,35 @@ class TwoWayAlgorithm:
         return len(visited) == len(counties)
     
     def generate_initial_partisan_lean(self, year=None):
-        """Generate partisan lean data from election results or random."""
+        """
+        Generate partisan lean data from election results, augment data, or random.
+
+        If self.augment is provided, uses augment proportions for partisan lean
+        and real election data (from year) for population scaling.
+
+        Args:
+            year: Election year for population data (default: 2020 if augment, None for random)
+        """
         self.county_to_partisan_lean = {}
         self.county_to_population = {}
-        
+
+        # If augment data is provided, use it for lean calculation
+        if self.augment is not None:
+            # Default to 2020 for population data if no year specified
+            pop_year = year if year else 2020
+            self._generate_from_augment(pop_year)
+            return
+
         if not year:
+            # Random generation
             for _, counties in self.state_to_counties.items():
                 state_lean = np.random.uniform(-20, 20)
                 for county in counties:
                     self.county_to_partisan_lean[county] = np.random.normal(state_lean, np.abs(state_lean)+1)
                     self.county_to_population[county] = np.random.randint(1000, 100000)
             return
-        
+
+        # Load from real election data
         file = f'data/{year}_US_County_Level_Presidential_Results.csv'
         with open(file, 'r') as f:
             reader = csv.reader(f)
@@ -195,6 +223,49 @@ class TwoWayAlgorithm:
                     raise ValueError(f"County {county_fips} with name {county_name} not found")
                 self.county_to_partisan_lean[county_fips] = (votes_gop - votes_dem) / total_votes
                 self.county_to_population[county_fips] = total_votes
+
+    def _generate_from_augment(self, pop_year):
+        """
+        Generate partisan lean from augment data with real population scaling.
+
+        Uses augment data for vote proportions (lean calculation) and real
+        election data for county populations.
+
+        Args:
+            pop_year: Year to use for population data
+        """
+        # First, load population data from real election
+        population_data = {}
+        file = f'data/{pop_year}_US_County_Level_Presidential_Results.csv'
+        with open(file, 'r') as f:
+            reader = csv.reader(f)
+            next(reader)
+            for state_name, county_fips, county_name, votes_gop, votes_dem, *_ in reader:
+                if state_name in ['Alaska', 'Hawaii']:
+                    continue
+                total_votes = int(votes_gop) + int(votes_dem)
+                population_data[county_fips] = total_votes
+
+        # Now apply augment data for partisan lean
+        for county_fips in self.county_to_state:
+            # Get population from real data
+            pop = population_data.get(county_fips, 10000)  # Default if missing
+            self.county_to_population[county_fips] = pop
+
+            # Get lean from augment data
+            if county_fips in self.augment:
+                aug = self.augment[county_fips]
+                side1_votes = aug.get('side1', 0)
+                side2_votes = aug.get('side2', 0)
+                total = side1_votes + side2_votes
+                if total > 0:
+                    # Lean: positive = side1, negative = side2
+                    self.county_to_partisan_lean[county_fips] = (side1_votes - side2_votes) / total
+                else:
+                    self.county_to_partisan_lean[county_fips] = 0.0
+            else:
+                # County not in augment data - default to neutral
+                self.county_to_partisan_lean[county_fips] = 0.0
     
     def compute_state_to_partisan_lean(self):
         """Compute population-weighted partisan lean for each state."""

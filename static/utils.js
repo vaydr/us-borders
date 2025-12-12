@@ -81,9 +81,9 @@ export function formatLean(lean) {
     const pct = Math.abs(lean * 100).toFixed(2);
     if (Math.abs(lean) < 0.000005) return 'EVEN';
     // Use single-letter abbreviations from sideConfig
-    const s1Abbr = state.sideConfig.side1_abbrev?.charAt(0) || 'R';
-    const s2Abbr = state.sideConfig.side2_abbrev?.charAt(0) || 'D';
-    return lean > 0 ? `${s1Abbr}+${pct}` : `${s2Abbr}+${pct}`;
+    const s1Letter = state.sideConfig.side1_letter || 'R';
+    const s2Letter = state.sideConfig.side2_letter || 'D';
+    return lean > 0 ? `${s1Letter}+${pct}` : `${s2Letter}+${pct}`;
 }
 
 // Get CSS class for lean

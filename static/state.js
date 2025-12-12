@@ -69,9 +69,11 @@ export let sideConfig = {
     side1: 'Republican',
     side1_color: 'red',
     side1_abbrev: 'GOP',
+    side1_letter: 'R',
     side2: 'Democrat',
     side2_color: 'blue',
-    side2_abbrev: 'DEM'
+    side2_abbrev: 'DEM',
+    side2_letter: 'D'
 };
 
 // Setters for mutable state
