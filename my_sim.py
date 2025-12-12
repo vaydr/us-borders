@@ -167,20 +167,6 @@ def get_configuration_score(winner: str):
 
     return score
 
-# Track state for follow-the-leader mode
-follow_the_leader_state = None
-last_moved_county = None
-
-# Track frontier for BFS/DFS modes
-traversal_frontier = []  # list of counties to explore
-traversal_visited = set()  # counties already taken
-
-# Track rejected moves for smart exploration (max heap via negative scores)
-import heapq
-rejected_moves_heap = []  # list of (-score, pivot_county, state_to_grow, from_state)
-iterations_since_exchange = 0
-
-
 def reset_follow_the_leader():
     """Reset the leader state and traversal state."""
     global follow_the_leader_state, last_moved_county, traversal_frontier, traversal_visited
