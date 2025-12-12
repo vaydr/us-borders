@@ -32,52 +32,53 @@ export function setupSocketHandlers() {
     });
 
     state.socket.on('color_update', (data) => {
-        // Track changed counties with timestamps for fade animation
-        if (data.countyToState && state.diffMode) {
-            const now = performance.now();
-            for (const [geoid, newState] of Object.entries(data.countyToState)) {
-                const oldState = state.previousCountyToState[geoid];
-                if (oldState !== undefined && oldState !== newState) {
-                    state.countyChangeTime[geoid] = now; // Reset/set timestamp
-                }
-            }
-            // Start animation loop if not already running
-            if (!state.diffAnimationFrame) {
-                diffAnimationLoop();
-            }
-        }
-        if (data.countyToState) {
-            state.setPreviousCountyToState({ ...data.countyToState });
-        }
+        const { colors, stateLeans, countyToState, election, score, generation } = data;
 
-        state.setCountyColors(data.colors);
-        if (data.stateLeans) state.setStateLeans(data.stateLeans);
-        if (data.countyToState) {
-            state.setCountyToState(data.countyToState);
+        // Update colors directly (no copy needed)
+        state.setCountyColors(colors);
+
+        // Handle county-to-state updates
+        if (countyToState) {
+            // Diff tracking only when diffMode is on
+            if (state.diffMode) {
+                const now = performance.now();
+                const prev = state.previousCountyToState;
+                for (const geoid in countyToState) {
+                    if (prev[geoid] !== undefined && prev[geoid] !== countyToState[geoid]) {
+                        state.countyChangeTime[geoid] = now;
+                    }
+                }
+                if (!state.diffAnimationFrame) {
+                    diffAnimationLoop();
+                }
+                // Need a copy for next comparison when diffMode is on
+                state.setPreviousCountyToState(Object.assign({}, countyToState));
+            } else {
+                // No copy needed when diffMode is off
+                state.setPreviousCountyToState(countyToState);
+            }
+            state.setCountyToState(countyToState);
             updateStateCountyCounts();
         }
-        if (data.election) {
-            state.setElection(data.election);
-        }
-        if (data.score !== undefined) {
-            state.setCurrentScore(data.score);
-            // Track score with iteration for chart
-            if (data.generation !== undefined) {
-                state.pushScoreHistory({ iter: data.generation, score: state.currentScore });
+
+        if (stateLeans) state.setStateLeans(stateLeans);
+        if (election) state.setElection(election);
+        if (score !== undefined) {
+            state.setCurrentScore(score);
+            if (generation !== undefined) {
+                state.pushScoreHistory({ iter: generation, score });
             }
         }
 
         render();
-
-        // Update brainrot dashboard
         updateDashboard();
 
-        // Refresh tooltip if currently hovering over a state
+        // Tooltip refresh only if visible
         if (state.hoveredState && stateTooltip.style.display !== 'none') {
             updateTooltipContent(state.hoveredState);
         }
 
-        if (iterationEl) iterationEl.textContent = data.generation.toLocaleString();
+        if (iterationEl) iterationEl.textContent = generation.toLocaleString();
     });
 
     state.socket.on('algorithm_started', (data) => {
@@ -88,7 +89,22 @@ export function setupSocketHandlers() {
         startBtn.disabled = false;
         stopBtn.disabled = true;
         if (iterBox) iterBox.classList.remove('running');
+        if (iterBox) iterBox.classList.remove('paused');
         state.setIsAlgorithmRunning(false);
+    });
+
+    state.socket.on('algorithm_paused', (data) => {
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+        if (iterBox) iterBox.classList.remove('running');
+        if (iterBox) iterBox.classList.add('paused');
+        state.setIsAlgorithmRunning(false);
+        console.log(`Paused at iteration ${data.generation}/${data.total}`);
+    });
+
+    state.socket.on('algorithm_stopping', () => {
+        // Algorithm is stopping, wait for paused event
+        if (iterBox) iterBox.classList.add('stopping');
     });
 
     state.socket.on('error', (data) => {
@@ -96,30 +112,36 @@ export function setupSocketHandlers() {
         startBtn.disabled = false;
         stopBtn.disabled = true;
         if (iterBox) iterBox.classList.remove('running');
+        if (iterBox) iterBox.classList.remove('paused');
         state.setIsAlgorithmRunning(false);
     });
 
     state.socket.on('reset_complete', (data) => {
-        state.setCountyColors(data.colors);
-        if (data.countyToState) {
-            state.setCountyToState(data.countyToState);
-            state.setPreviousCountyToState({ ...state.countyToState });
-            state.setCountyChangeTime({}); // Clear all fade animations
+        const { colors, countyToState, stateLeans, election } = data;
+
+        state.setCountyColors(colors);
+        if (countyToState) {
+            state.setCountyToState(countyToState);
+            state.setPreviousCountyToState(countyToState);
+            state.setCountyChangeTime({});
             if (state.diffAnimationFrame) {
                 cancelAnimationFrame(state.diffAnimationFrame);
                 state.setDiffAnimationFrame(null);
             }
             updateStateCountyCounts();
         }
-        if (data.stateLeans) state.setStateLeans(data.stateLeans);
-        if (data.election) state.setElection(data.election);
+        if (stateLeans) state.setStateLeans(stateLeans);
+        if (election) state.setElection(election);
 
-        // Reset dashboard
+        // Clear UI state
+        if (iterBox) {
+            iterBox.classList.remove('paused', 'stopping');
+        }
+
         resetDashboard();
-
         render();
-        if (iterationEl) iterationEl.textContent = '0';
         updateVerticalEVBar();
         updateDashboard();
+        if (iterationEl) iterationEl.textContent = '0';
     });
 }

@@ -23,6 +23,9 @@ const renderEveryInput = document.getElementById('renderEvery');
 // Control getters (will be set after setup)
 let controlGetters = {};
 
+// Track if we have a paused run to resume
+let isPaused = false;
+
 // Initialize the application
 async function init() {
     try {
@@ -110,20 +113,22 @@ function setupButtonHandlers() {
             generations: parseInt(iterationsInput.value),
             render_every: parseInt(renderEveryInput.value),
             target: controlGetters.getTarget?.() || state.selectedTarget,
-            mode: controlGetters.getMode?.() || state.selectedMode
+            mode: controlGetters.getMode?.() || state.selectedMode,
+            resume: isPaused  // Resume if we were paused
         });
         startBtn.disabled = true;
         stopBtn.disabled = false;
         if (iterBox) iterBox.classList.add('running');
+        if (iterBox) iterBox.classList.remove('paused');
+        if (iterBox) iterBox.classList.remove('stopping');
         state.setIsAlgorithmRunning(true);
+        isPaused = false;
     };
 
     stopBtn.onclick = () => {
         state.socket.emit('stop_algorithm');
-        startBtn.disabled = false;
+        // Don't immediately update UI - wait for algorithm_paused event
         stopBtn.disabled = true;
-        if (iterBox) iterBox.classList.remove('running');
-        state.setIsAlgorithmRunning(false);
     };
 
     resetBtn.onclick = () => {
@@ -131,7 +136,23 @@ function setupButtonHandlers() {
         startBtn.disabled = false;
         stopBtn.disabled = true;
         if (iterBox) iterBox.classList.remove('running');
+        if (iterBox) iterBox.classList.remove('paused');
+        if (iterBox) iterBox.classList.remove('stopping');
+        isPaused = false;
     };
+
+    // Listen for paused event to update isPaused flag
+    state.socket.on('algorithm_paused', () => {
+        isPaused = true;
+    });
+
+    state.socket.on('algorithm_complete', () => {
+        isPaused = false;
+    });
+
+    state.socket.on('reset_complete', () => {
+        isPaused = false;
+    });
 }
 
 // Initialize Lucide icons and start the app

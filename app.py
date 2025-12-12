@@ -17,8 +17,18 @@ app.config['SECRET_KEY'] = 'secret'
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# Global data
+# Global data - use threading.Event for thread-safe stop signaling
+stop_event = threading.Event()
 is_running = False
+
+# State for pause/resume
+paused_state = {
+    'iteration': 0,
+    'total_iterations': 0,
+    'target': 'Republican',
+    'mode': 'standard',
+    'render_every': 10
+}
 
 # Saved initial state for reset
 initial_county_to_state = {}
@@ -165,29 +175,59 @@ def get_current_score(target):
 @socketio.on('start_algorithm')
 def start_algorithm(data):
     """Run simulation - sends only color updates, not images."""
-    global is_running
+    global is_running, paused_state, stop_event
 
     if is_running:
         emit('error', {'message': 'Already running'})
         return
 
-    iterations = data.get('generations', 25000)
-    render_every = data.get('render_every', 50)
-    target = data.get('target', 'Republican')  # 'Republican', 'Democratic', or 'Tie'
-    mode = data.get('mode', 'standard')  # 'standard' or 'follow_the_leader'
-    print(f"Starting {iterations} iterations, updating every {render_every}, target: {target}, mode: {mode}")
+    # Check if resuming from pause
+    resume = data.get('resume', False)
 
-    # Reset follow-the-leader state at start
-    my_sim.reset_follow_the_leader()
+    if resume and paused_state['iteration'] > 0:
+        # Resume from where we left off
+        start_iteration = paused_state['iteration']
+        iterations = paused_state['total_iterations']
+        render_every = paused_state['render_every']
+        target = paused_state['target']
+        mode = paused_state['mode']
+        print(f"Resuming from iteration {start_iteration}/{iterations}, target: {target}, mode: {mode}")
+    else:
+        # Fresh start
+        start_iteration = 0
+        iterations = data.get('generations', 25000)
+        render_every = data.get('render_every', 50)
+        target = data.get('target', 'Republican')
+        mode = data.get('mode', 'standard')
+        print(f"Starting {iterations} iterations, updating every {render_every}, target: {target}, mode: {mode}")
+        # Reset follow-the-leader state only on fresh start
+        my_sim.reset_follow_the_leader()
+
+    # Clear stop event
+    stop_event.clear()
 
     def run():
-        global is_running
+        global is_running, paused_state
         is_running = True
         heap_used_this_batch = False
 
         try:
-            for i in range(iterations):
-                if not is_running:
+            for i in range(start_iteration, iterations):
+                # Check stop event (thread-safe)
+                if stop_event.is_set():
+                    # Save state for resume
+                    paused_state = {
+                        'iteration': i,
+                        'total_iterations': iterations,
+                        'target': target,
+                        'mode': mode,
+                        'render_every': render_every
+                    }
+                    socketio.emit('algorithm_paused', {
+                        'generation': i,
+                        'total': iterations,
+                        'message': 'Paused - click play to resume'
+                    })
                     break
 
                 success, heap_used = my_sim.iteration_greedy(target, mode)
@@ -211,8 +251,10 @@ def start_algorithm(data):
                         'election': get_election_results(),
                         'score': get_current_score(target)
                     })
-
-            socketio.emit('algorithm_complete', {'generations': iterations})
+            else:
+                # Loop completed without break (not paused)
+                paused_state['iteration'] = 0  # Clear pause state
+                socketio.emit('algorithm_complete', {'generations': iterations})
 
         except Exception as e:
             print(f"Error: {e}")
@@ -227,20 +269,30 @@ def start_algorithm(data):
     thread.daemon = True
     thread.start()
 
-    emit('algorithm_started', {'iterations': iterations, 'target': target})
+    emit('algorithm_started', {'iterations': iterations, 'target': target, 'resumed': resume})
 
 
 @socketio.on('stop_algorithm')
 def stop_algorithm():
-    global is_running
-    is_running = False
-    emit('algorithm_stopped', {'message': 'Stopped'})
+    global stop_event
+    stop_event.set()  # Signal the thread to stop
+    emit('algorithm_stopping', {'message': 'Stopping...'})
 
 
 @socketio.on('reset_algorithm')
 def reset_algorithm():
-    global is_running
+    global is_running, paused_state, stop_event
+    stop_event.set()  # Stop any running algorithm
     is_running = False
+
+    # Clear pause state
+    paused_state = {
+        'iteration': 0,
+        'total_iterations': 0,
+        'target': 'Republican',
+        'mode': 'standard',
+        'render_every': 10
+    }
 
     # Restore initial state from saved copies
     my_sim.county_to_state.clear()
