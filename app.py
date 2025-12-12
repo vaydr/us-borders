@@ -9,8 +9,8 @@ import threading
 import time
 import json
 
-# Import my_sim WITHOUT touching it
-import my_sim
+# Import TwoWayAlgorithm class
+from my_sim import TwoWayAlgorithm
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret'
@@ -20,6 +20,9 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 # Global data - use threading.Event for thread-safe stop signaling
 stop_event = threading.Event()
 is_running = False
+
+# The algorithm instance - this holds all simulation state
+algorithm = None
 
 # State for pause/resume
 paused_state = {
@@ -34,13 +37,11 @@ paused_state = {
 best_state = {
     'score': float('-inf'),
     'iteration': 0,
-    'county_to_state': {},
-    'state_to_counties': {}
+    'snapshot': None  # Will store get_state_snapshot() result
 }
 
 # Saved initial state for reset
-initial_county_to_state = {}
-initial_state_to_counties = {}
+initial_snapshot = None
 
 # 49 maximally distinguishable colors
 PALETTE = [
@@ -65,7 +66,7 @@ def generate_state_colors():
     global state_color_idx
     state_color_idx = {}
 
-    states = sorted([str(s) for s in my_sim.state_to_counties.keys()])
+    states = sorted([str(s) for s in algorithm.state_to_counties.keys()])
     for i, state in enumerate(states):
         state_color_idx[state] = i % len(PALETTE)
 
@@ -73,7 +74,7 @@ def generate_state_colors():
 def get_county_colors():
     """Get county_id -> color_index mapping."""
     return {str(geoid): state_color_idx.get(str(state), 0)
-            for geoid, state in my_sim.county_to_state.items()}
+            for geoid, state in algorithm.county_to_state.items()}
 
 
 @app.route('/')
@@ -90,12 +91,12 @@ def get_geojson():
 def get_state_partisan_leans():
     """Calculate population-weighted average partisan lean for each state."""
     state_leans = {}
-    for state, counties in my_sim.state_to_counties.items():
+    for state, counties in algorithm.state_to_counties.items():
         if counties:
-            total_pop = sum(my_sim.county_to_population.get(c, 0) for c in counties)
+            total_pop = sum(algorithm.county_to_population.get(c, 0) for c in counties)
             if total_pop > 0:
                 avg_lean = sum(
-                    my_sim.county_to_partisan_lean.get(c, 0) * my_sim.county_to_population.get(c, 0)
+                    algorithm.county_to_partisan_lean.get(c, 0) * algorithm.county_to_population.get(c, 0)
                     for c in counties
                 ) / total_pop
                 state_leans[str(state)] = avg_lean
@@ -107,22 +108,29 @@ def get_state_partisan_leans():
 
 
 def get_election_results():
-    """Compute election winner using my_sim's logic."""
-    my_sim.compute_state_to_partisan_lean()
-    winner, winner_ev, loser_ev = my_sim.compute_election_winner()
+    """Compute election winner using algorithm's logic."""
+    algorithm.compute_state_to_partisan_lean()
+    winner, winner_ev, loser_ev = algorithm.compute_election_winner()
 
-    # Determine R and D EVs
-    if winner == 'Republican':
-        r_ev, d_ev = winner_ev, loser_ev
-    elif winner == 'Democratic':
-        r_ev, d_ev = loser_ev, winner_ev
+    # Determine side1 and side2 EVs based on winner
+    if winner == algorithm.side1:
+        side1_ev, side2_ev = winner_ev, loser_ev
+    elif winner == algorithm.side2:
+        side1_ev, side2_ev = loser_ev, winner_ev
     else:  # Tie
-        r_ev, d_ev = winner_ev, loser_ev
+        side1_ev, side2_ev = winner_ev, loser_ev
 
     return {
         'winner': winner,
-        'r_ev': r_ev,
-        'd_ev': d_ev
+        'side1': algorithm.side1,
+        'side2': algorithm.side2,
+        'side1_ev': side1_ev,
+        'side2_ev': side2_ev,
+        'side1_color': algorithm.color1,
+        'side2_color': algorithm.color2,
+        # Backwards compatible keys
+        'r_ev': side1_ev,
+        'd_ev': side2_ev
     }
 
 
@@ -131,23 +139,23 @@ def init_data():
     """Get initial state: palette, county colors, neighbor data, and partisan lean."""
     # Build neighbors dict with string keys
     neighbors = {}
-    for geoid, neighbor_list in my_sim.county_to_neighbors.items():
+    for geoid, neighbor_list in algorithm.county_to_neighbors.items():
         neighbors[str(geoid)] = [str(n) for n in neighbor_list]
 
     # Build partisan lean dict with string keys
-    partisan_lean = {str(geoid): lean for geoid, lean in my_sim.county_to_partisan_lean.items()}
+    partisan_lean = {str(geoid): lean for geoid, lean in algorithm.county_to_partisan_lean.items()}
 
     # Build population dict with string keys
-    population = {str(geoid): pop for geoid, pop in my_sim.county_to_population.items()}
+    population = {str(geoid): pop for geoid, pop in algorithm.county_to_population.items()}
 
     # Build county to state mapping
-    county_to_state_map = {str(geoid): str(state) for geoid, state in my_sim.county_to_state.items()}
+    county_to_state_map = {str(geoid): str(state) for geoid, state in algorithm.county_to_state.items()}
 
     # Build state EVs and populations
-    state_evs = dict(my_sim.state_to_ev)
+    state_evs = dict(algorithm.state_to_ev)
     state_populations = {}
-    for state, counties in my_sim.state_to_counties.items():
-        state_populations[state] = sum(my_sim.county_to_population.get(c, 0) for c in counties)
+    for state, counties in algorithm.state_to_counties.items():
+        state_populations[state] = sum(algorithm.county_to_population.get(c, 0) for c in counties)
 
     return jsonify({
         'palette': PALETTE,
@@ -159,7 +167,14 @@ def init_data():
         'countyToState': county_to_state_map,
         'stateEVs': state_evs,
         'statePopulations': state_populations,
-        'election': get_election_results()
+        'election': get_election_results(),
+        # Include side configuration
+        'sideConfig': {
+            'side1': algorithm.side1,
+            'side1_color': algorithm.color1,
+            'side2': algorithm.side2,
+            'side2_color': algorithm.color2
+        }
     })
 
 
@@ -176,8 +191,8 @@ def on_disconnect():
 
 def get_current_score(target):
     """Get current configuration score for the given target."""
-    my_sim.compute_state_to_partisan_lean()
-    return my_sim.get_configuration_score(target)
+    algorithm.compute_state_to_partisan_lean()
+    return algorithm.get_configuration_score(target)
 
 
 @socketio.on('start_algorithm')
@@ -205,17 +220,16 @@ def start_algorithm(data):
         start_iteration = 0
         iterations = data.get('generations', 25000)
         render_every = data.get('render_every', 50)
-        target = data.get('target', 'Republican')
+        target = data.get('target', algorithm.side1)  # Default to algorithm's side1
         mode = data.get('mode', 'standard')
         print(f"Starting {iterations} iterations, updating every {render_every}, target: {target}, mode: {mode}")
         # Reset follow-the-leader state only on fresh start
-        my_sim.reset_follow_the_leader()
+        algorithm.reset_follow_the_leader()
         # Reset best state tracking on fresh start
         best_state = {
             'score': float('-inf'),
             'iteration': 0,
-            'county_to_state': {},
-            'state_to_counties': {}
+            'snapshot': None
         }
 
     # Clear stop event
@@ -246,7 +260,7 @@ def start_algorithm(data):
                     })
                     break
 
-                success, heap_used, pivot_county = my_sim.iteration_greedy(target, mode)
+                success, heap_used, pivot_county = algorithm.iteration_greedy(target, mode)
                 if heap_used:
                     heap_used_this_batch = True
 
@@ -268,8 +282,7 @@ def start_algorithm(data):
                         best_state = {
                             'score': score,
                             'iteration': current_iter,
-                            'county_to_state': dict(my_sim.county_to_state),
-                            'state_to_counties': {s: set(c) for s, c in my_sim.state_to_counties.items()}
+                            'snapshot': algorithm.get_state_snapshot()
                         }
 
                     socketio.emit('color_update', {
@@ -277,7 +290,7 @@ def start_algorithm(data):
                         'total': iterations,
                         'colors': get_county_colors(),
                         'stateLeans': get_state_partisan_leans(),
-                        'countyToState': {str(geoid): str(state) for geoid, state in my_sim.county_to_state.items()},
+                        'countyToState': {str(geoid): str(state) for geoid, state in algorithm.county_to_state.items()},
                         'election': get_election_results(),
                         'score': score,
                         'bestScore': best_state['score'],
@@ -317,7 +330,7 @@ def stop_algorithm():
 
 @socketio.on('reset_algorithm')
 def reset_algorithm():
-    global is_running, paused_state, stop_event, best_state
+    global is_running, paused_state, stop_event, best_state, initial_snapshot
     stop_event.set()  # Stop any running algorithm
     is_running = False
 
@@ -325,33 +338,27 @@ def reset_algorithm():
     paused_state = {
         'iteration': 0,
         'total_iterations': 0,
-        'target': 'Republican',
+        'target': algorithm.side1,
         'mode': 'standard',
         'render_every': 10
     }
     best_state = {
         'score': float('-inf'),
         'iteration': 0,
-        'county_to_state': {},
-        'state_to_counties': {}
+        'snapshot': None
     }
 
-    # Restore initial state from saved copies
-    my_sim.county_to_state.clear()
-    my_sim.county_to_state.update(initial_county_to_state)
-
-    my_sim.state_to_counties.clear()
-    for state, counties in initial_state_to_counties.items():
-        my_sim.state_to_counties[state] = set(counties)
-
-    my_sim.compute_state_to_bordering_counties()
-    my_sim.reset_follow_the_leader()
+    # Restore initial state from saved snapshot
+    if initial_snapshot:
+        algorithm.restore_state_snapshot(initial_snapshot)
+    
+    algorithm.reset_follow_the_leader()
 
     print("Algorithm reset to initial state")
     emit('reset_complete', {
         'colors': get_county_colors(),
         'stateLeans': get_state_partisan_leans(),
-        'countyToState': {str(geoid): str(state) for geoid, state in my_sim.county_to_state.items()},
+        'countyToState': {str(geoid): str(state) for geoid, state in algorithm.county_to_state.items()},
         'election': get_election_results()
     })
 
@@ -361,7 +368,7 @@ def restore_best():
     """Restore to the best scoring state and set up to resume from there."""
     global is_running, paused_state, stop_event, best_state
 
-    if best_state['iteration'] == 0:
+    if best_state['iteration'] == 0 or best_state['snapshot'] is None:
         emit('error', {'message': 'No best state saved yet'})
         return
 
@@ -370,20 +377,13 @@ def restore_best():
     is_running = False
 
     # Restore state from best snapshot
-    my_sim.county_to_state.clear()
-    my_sim.county_to_state.update(best_state['county_to_state'])
-
-    my_sim.state_to_counties.clear()
-    for state, counties in best_state['state_to_counties'].items():
-        my_sim.state_to_counties[state] = set(counties)
-
-    my_sim.compute_state_to_bordering_counties()
+    algorithm.restore_state_snapshot(best_state['snapshot'])
 
     # Set up paused_state to resume from best iteration
     paused_state = {
         'iteration': best_state['iteration'],
         'total_iterations': paused_state.get('total_iterations', 100000),
-        'target': paused_state.get('target', 'Republican'),
+        'target': paused_state.get('target', algorithm.side1),
         'mode': paused_state.get('mode', 'standard'),
         'render_every': paused_state.get('render_every', 10)
     }
@@ -392,7 +392,7 @@ def restore_best():
     emit('best_restored', {
         'colors': get_county_colors(),
         'stateLeans': get_state_partisan_leans(),
-        'countyToState': {str(geoid): str(state) for geoid, state in my_sim.county_to_state.items()},
+        'countyToState': {str(geoid): str(state) for geoid, state in algorithm.county_to_state.items()},
         'election': get_election_results(),
         'score': best_state['score'],
         'iteration': best_state['iteration']
@@ -404,15 +404,22 @@ if __name__ == '__main__':
     print("Initializing...")
     print("="*60)
 
-    # Initialize my_sim
-    my_sim.compute_state_to_bordering_counties()
-    my_sim.generate_initial_partisan_lean(2020)
-    print(f"Initialized: {len(my_sim.state_to_counties)} states, {len(my_sim.county_to_state)} counties")
+    # Create algorithm instance with configurable sides
+    # You can change these to customize the simulation
+    algorithm = TwoWayAlgorithm(
+        side1="Republican",
+        color1="red",
+        side2="Democrat",
+        color2="blue"
+    )
+    
+    # Initialize algorithm
+    algorithm.compute_state_to_bordering_counties()
+    algorithm.generate_initial_partisan_lean(2020)
+    print(f"Initialized: {len(algorithm.state_to_counties)} states, {len(algorithm.county_to_state)} counties")
 
     # Save initial state for reset functionality
-    initial_county_to_state.update(my_sim.county_to_state)
-    for state, counties in my_sim.state_to_counties.items():
-        initial_state_to_counties[state] = set(counties)
+    initial_snapshot = algorithm.get_state_snapshot()
     print("Saved initial state for reset")
 
     # Generate initial state colors
@@ -420,6 +427,7 @@ if __name__ == '__main__':
     print(f"Generated colors for {len(state_color_idx)} states")
 
     print("="*60)
+    print(f"Simulation configured for: {algorithm.side1} vs {algorithm.side2}")
     print("Server starting on http://localhost:5000")
     print("="*60)
 

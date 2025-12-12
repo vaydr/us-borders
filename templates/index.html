@@ -55,6 +55,9 @@
                             <div class="kway-option" data-value="state-partisan" title="State Partisan">
                                 <i data-lucide="landmark" class="kway-icon"></i>
                             </div>
+                            <div class="kway-option" data-value="state-winner" title="State Winner">
+                                <i data-lucide="flag" class="kway-icon"></i>
+                            </div>
                             <div class="kway-option" data-value="state" title="State Colors">
                                 <i data-lucide="palette" class="kway-icon"></i>
                             </div>
@@ -117,17 +120,6 @@
 
                 <!-- Floating EV Panel (right side) -->
                 <div class="floating-ev" id="floatingEV" style="display: none;">
-                    <div class="ev-bar-vertical">
-                        <div class="ev-bar-track">
-                            <div class="ev-bar-rep-v" id="evRepBarV"><span id="evRepV">0</span></div>
-                            <div class="ev-bar-rep-swing-v" id="evRepSwingBarV"><span id="evRepSwingV"></span></div>
-                            <div class="ev-bar-dem-swing-v" id="evDemSwingBarV"><span id="evDemSwingV"></span></div>
-                            <div class="ev-bar-dem-v" id="evDemBarV"><span id="evDemV">0</span></div>
-                            <div class="ev-270-line"></div>
-                            <span class="ev-total-label rep" id="evTotalRep">0</span>
-                            <span class="ev-total-label dem" id="evTotalDem">0</span>
-                        </div>
-                    </div>
                     <div class="ev-stats-col">
                         <div class="ev-stat-box">
                             <div class="stat-value purple" id="winnerV">-</div>
@@ -157,6 +149,17 @@
                                 </div>
                             </div>
                             <div class="carousel-dots"></div>
+                        </div>
+                    </div>
+                    <div class="ev-bar-vertical">
+                        <div class="ev-bar-track">
+                            <div class="ev-bar-rep-v" id="evRepBarV"><span id="evRepV">0</span></div>
+                            <div class="ev-bar-rep-swing-v" id="evRepSwingBarV"><span id="evRepSwingV"></span></div>
+                            <div class="ev-bar-dem-swing-v" id="evDemSwingBarV"><span id="evDemSwingV"></span></div>
+                            <div class="ev-bar-dem-v" id="evDemBarV"><span id="evDemV">0</span></div>
+                            <div class="ev-270-line"></div>
+                            <span class="ev-total-label rep" id="evTotalRep">0</span>
+                            <span class="ev-total-label dem" id="evTotalDem">0</span>
                         </div>
                     </div>
                 </div>

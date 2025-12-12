@@ -25,6 +25,17 @@ export function render() {
         } else if (state.colorMode === 'state-partisan') {
             const lean = countyState ? state.stateLeans[countyState] : undefined;
             color = lean !== undefined ? leanToColor(lean * 2) : '#cccccc';
+        } else if (state.colorMode === 'state-winner') {
+            const lean = countyState ? state.stateLeans[countyState] : undefined;
+            if (lean === undefined) {
+                color = '#cccccc';
+            } else if (lean > 0) {
+                color = '#ef4444'; // Red for Republican
+            } else if (lean < 0) {
+                color = '#3b82f6'; // Blue for Democrat
+            } else {
+                color = '#a855f7'; // Purple for exact tie
+            }
         } else {
             color = state.palette[state.countyColors[geoid]] || '#cccccc';
         }
