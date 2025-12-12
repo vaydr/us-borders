@@ -572,9 +572,8 @@ body {
     width: 100%;
     transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    padding-top: 12px;
+    flex-direction: column;
+    position: relative;
     font-weight: 700;
     font-size: 22px;
     color: white;
@@ -582,46 +581,77 @@ body {
     box-shadow: 0 2px 15px rgba(239,68,68,0.5);
     overflow: visible;
 }
+.ev-bar-rep-v > span {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+    z-index: 10;
+}
 .ev-bar-rep-swing-v {
     background: linear-gradient(180deg, #f87171 0%, #fca5a5 100%);
     width: 100%;
     transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
-    align-items: center;
-    justify-content: center;
+    flex-direction: column;
+    position: relative;
     font-weight: 700;
     font-size: 14px;
     color: #7f1d1d;
     text-shadow: 0 1px 2px rgba(255,255,255,0.3);
     overflow: visible;
 }
+.ev-bar-rep-swing-v > span {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 10;
+}
 .ev-bar-dem-swing-v {
     background: linear-gradient(0deg, #60a5fa 0%, #93c5fd 100%);
     width: 100%;
     transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
-    align-items: center;
-    justify-content: center;
+    flex-direction: column;
+    position: relative;
     font-weight: 700;
     font-size: 14px;
     color: #1e3a8a;
     text-shadow: 0 1px 2px rgba(255,255,255,0.3);
     overflow: visible;
 }
+.ev-bar-dem-swing-v > span {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 10;
+}
 .ev-bar-dem-v {
     background: linear-gradient(0deg, #2563eb 0%, #3b82f6 100%);
     width: 100%;
     transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    padding-bottom: 12px;
+    flex-direction: column;
+    position: relative;
     font-weight: 700;
     font-size: 22px;
     color: white;
     text-shadow: 0 -2px 4px rgba(0,0,0,0.5);
     box-shadow: 0 -2px 15px rgba(59,130,246,0.5);
     overflow: visible;
+}
+.ev-bar-dem-v > span {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+    z-index: 10;
 }
 .ev-270-line {
     position: absolute;
@@ -664,6 +694,22 @@ body {
     color: #888;
     writing-mode: vertical-rl;
     letter-spacing: 1px;
+}
+
+/* State segments within EV bar */
+.ev-state-segment {
+    width: 100%;
+    box-sizing: border-box;
+    cursor: pointer;
+    transition: filter 0.15s ease, border-color 0.15s ease;
+    min-height: 2px;
+    border-bottom: 1px solid transparent;
+}
+.ev-bar-track:hover .ev-state-segment:not(:last-child) {
+    border-bottom-color: rgba(0, 0, 0, 0.3);
+}
+.ev-state-segment:hover {
+    filter: brightness(1.2);
 }
 
 /* EV Stats Column */

@@ -38,6 +38,12 @@ export function render() {
             ctx.fill(path);
         }
 
+        // EV bar hover overlay
+        if (state.hoveredEVState && countyState === state.hoveredEVState) {
+            ctx.fillStyle = 'rgba(255, 155, 255, 0.5)';
+            ctx.fill(path);
+        }
+
         // White fade for diff mode county changes
         if (now && state.countyChangeTime[geoid]) {
             const elapsed = now - state.countyChangeTime[geoid];

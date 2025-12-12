@@ -2,6 +2,7 @@
 
 import * as state from './state.js';
 import { leanToColor, renderLineChart } from './utils.js';
+import { render } from './render.js';
 
 // Setup click handler for restoring best state
 export function setupScoreRestoreClick() {
@@ -313,51 +314,111 @@ export function updateTippingHistogram() {
     }).join('');
 }
 
+// Build state segment HTML for EV bar
+function buildStateSegmentHTML(states, segmentHeight) {
+    if (states.length === 0 || segmentHeight <= 0) return '';
+
+    const totalEV = states.reduce((sum, s) => sum + s.ev, 0);
+    if (totalEV === 0) return '';
+
+    return states.map((s, i) => {
+        const heightPct = (s.ev / totalEV) * 100;
+        return `<div class="ev-state-segment" data-state="${s.state}" style="height: ${heightPct}%;"></div>`;
+    }).join('');
+}
+
+// Attach hover handlers to state segments
+function attachEVBarHoverHandlers() {
+    document.querySelectorAll('.ev-state-segment').forEach(el => {
+        el.addEventListener('mouseenter', () => {
+            state.setHoveredEVState(el.dataset.state);
+            render();
+        });
+        el.addEventListener('mouseleave', () => {
+            state.setHoveredEVState(null);
+            render();
+        });
+    });
+}
+
 // Update vertical EV bar
 export function updateVerticalEVBar() {
-    // Calculate swing EVs for each party
-    let demSafeEV = 0, demSwingEV = 0, repSafeEV = 0, repSwingEV = 0;
+    // Build arrays of states per segment
+    const repSafeStates = [];
+    const repSwingStates = [];
+    const demSwingStates = [];
+    const demSafeStates = [];
 
     for (const [stateAbbrev, lean] of Object.entries(state.stateLeans)) {
         const ev = state.stateEVs[stateAbbrev] || 0;
+        if (ev === 0) continue;
+
         const isSwing = Math.abs(lean) <= 0.05;
+        const stateData = { state: stateAbbrev, ev, lean };
 
         if (lean < 0) {
-            // Dem-leaning state
             if (isSwing) {
-                demSwingEV += ev;
+                demSwingStates.push(stateData);
             } else {
-                demSafeEV += ev;
+                demSafeStates.push(stateData);
             }
         } else if (lean > 0) {
-            // Rep-leaning state
             if (isSwing) {
-                repSwingEV += ev;
+                repSwingStates.push(stateData);
             } else {
-                repSafeEV += ev;
+                repSafeStates.push(stateData);
             }
         } else {
-            // Exactly 0 - split as swing
-            demSwingEV += ev / 2;
-            repSwingEV += ev / 2;
+            // Exactly 0 - put in swing (could go either way)
+            demSwingStates.push({ ...stateData, ev: ev / 2 });
+            repSwingStates.push({ ...stateData, ev: ev / 2 });
         }
     }
 
-    const totalEV = demSafeEV + demSwingEV + repSafeEV + repSwingEV;
-    const demSafePct = totalEV > 0 ? (demSafeEV / totalEV) * 100 : 25;
-    const demSwingPct = totalEV > 0 ? (demSwingEV / totalEV) * 100 : 25;
+    // Sort by lean: most partisan at edges, swing-adjacent near middle
+    // Rep segments: highest lean first (top of bar, most R)
+    // Dem segments: lowest lean first (bottom of bar, most D)
+    repSafeStates.sort((a, b) => b.lean - a.lean);
+    repSwingStates.sort((a, b) => b.lean - a.lean);
+    demSwingStates.sort((a, b) => b.lean - a.lean);  // Least negative (closest to 0) first
+    demSafeStates.sort((a, b) => b.lean - a.lean);   // Least negative first, most D at bottom
+
+    // Calculate totals
+    const repSafeEV = repSafeStates.reduce((sum, s) => sum + s.ev, 0);
+    const repSwingEV = repSwingStates.reduce((sum, s) => sum + s.ev, 0);
+    const demSwingEV = demSwingStates.reduce((sum, s) => sum + s.ev, 0);
+    const demSafeEV = demSafeStates.reduce((sum, s) => sum + s.ev, 0);
+
+    const totalEV = repSafeEV + repSwingEV + demSwingEV + demSafeEV;
     const repSafePct = totalEV > 0 ? (repSafeEV / totalEV) * 100 : 25;
     const repSwingPct = totalEV > 0 ? (repSwingEV / totalEV) * 100 : 25;
+    const demSwingPct = totalEV > 0 ? (demSwingEV / totalEV) * 100 : 25;
+    const demSafePct = totalEV > 0 ? (demSafeEV / totalEV) * 100 : 25;
 
-    if (evRepBarV) evRepBarV.style.height = repSafePct + '%';
-    if (evRepSwingBarV) evRepSwingBarV.style.height = repSwingPct + '%';
-    if (evDemSwingBarV) evDemSwingBarV.style.height = demSwingPct + '%';
-    if (evDemBarV) evDemBarV.style.height = demSafePct + '%';
+    // Set segment heights and generate state segment HTML
+    if (evRepBarV) {
+        evRepBarV.style.height = repSafePct + '%';
+        const labelHTML = `<span id="evRepV">${Math.round(repSafeEV)}</span>`;
+        evRepBarV.innerHTML = buildStateSegmentHTML(repSafeStates, repSafePct) + labelHTML;
+    }
+    if (evRepSwingBarV) {
+        evRepSwingBarV.style.height = repSwingPct + '%';
+        const labelHTML = `<span id="evRepSwingV">${repSwingEV > 0 ? Math.round(repSwingEV) : ''}</span>`;
+        evRepSwingBarV.innerHTML = buildStateSegmentHTML(repSwingStates, repSwingPct) + labelHTML;
+    }
+    if (evDemSwingBarV) {
+        evDemSwingBarV.style.height = demSwingPct + '%';
+        const labelHTML = `<span id="evDemSwingV">${demSwingEV > 0 ? Math.round(demSwingEV) : ''}</span>`;
+        evDemSwingBarV.innerHTML = buildStateSegmentHTML(demSwingStates, demSwingPct) + labelHTML;
+    }
+    if (evDemBarV) {
+        evDemBarV.style.height = demSafePct + '%';
+        const labelHTML = `<span id="evDemV">${Math.round(demSafeEV)}</span>`;
+        evDemBarV.innerHTML = buildStateSegmentHTML(demSafeStates, demSafePct) + labelHTML;
+    }
 
-    if (evRepVEl) evRepVEl.textContent = Math.round(repSafeEV);
-    if (evRepSwingVEl) evRepSwingVEl.textContent = repSwingEV > 0 ? Math.round(repSwingEV) : '';
-    if (evDemSwingVEl) evDemSwingVEl.textContent = demSwingEV > 0 ? Math.round(demSwingEV) : '';
-    if (evDemVEl) evDemVEl.textContent = Math.round(demSafeEV);
+    // Attach hover handlers to newly created segments
+    attachEVBarHoverHandlers();
 
     // Update winner (based on total EVs)
     const totalDem = demSafeEV + demSwingEV;

@@ -35,6 +35,7 @@ export let stateCountyCounts = {}; // state abbrev -> number of counties
 export let stateEVs = {};          // state abbrev -> electoral votes
 export let statePopulations = {};  // state abbrev -> total population
 export let hoveredState = null;    // Currently hovered state
+export let hoveredEVState = null;  // State hovered in EV bar
 
 // Track historical data for line charts
 export let scoreHistory = []; // [{iter, score}, ...]
@@ -87,6 +88,7 @@ export function setStateCountyCounts(val) { stateCountyCounts = val; }
 export function setStateEVs(val) { stateEVs = val; }
 export function setStatePopulations(val) { statePopulations = val; }
 export function setHoveredState(val) { hoveredState = val; }
+export function setHoveredEVState(val) { hoveredEVState = val; }
 export function setScoreHistory(val) { scoreHistory = val; }
 export function setSwingHistory(val) { swingHistory = val; }
 export function setFairnessHistory(val) { fairnessHistory = val; }
