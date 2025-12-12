@@ -67,11 +67,11 @@
                     <div class="kway-select" id="targetKway">
                         <div class="kway-label">Target</div>
                         <div class="kway-options">
-                            <div class="kway-option active rep" data-value="Republican" title="GOP Victory">
-                                <span class="kway-icon">🐘</span>
+                            <div class="kway-option active side1" data-value="side1" id="targetSide1" title="Side 1 Victory">
+                                <span class="kway-icon" id="targetSide1Icon">1</span>
                             </div>
-                            <div class="kway-option dem" data-value="Democratic" title="DEM Victory">
-                                <span class="kway-icon">🫏</span>
+                            <div class="kway-option side2" data-value="side2" id="targetSide2" title="Side 2 Victory">
+                                <span class="kway-icon" id="targetSide2Icon">2</span>
                             </div>
                             <div class="kway-option tie" data-value="Tie" title="Electoral Tie">
                                 <i data-lucide="scale" class="kway-icon"></i>
@@ -135,13 +135,13 @@
                         </div>
                         <div class="ev-stat-box stat-carousel" id="evCarousel" style="--carousel-color: #a855f7;">
                             <div class="carousel-items">
-                                <div class="carousel-item active" data-key="demshare2">
-                                    <div class="stat-value dem" id="demShare2">-</div>
-                                    <div class="stat-label">Dem Vote</div>
+                                <div class="carousel-item active" data-key="side2share">
+                                    <div class="stat-value side2" id="side2Share">-</div>
+                                    <div class="stat-label" id="side2VoteLabel">Side 2 Vote</div>
                                 </div>
-                                <div class="carousel-item" data-key="repshare2">
-                                    <div class="stat-value rep" id="repShare2">-</div>
-                                    <div class="stat-label">GOP Vote</div>
+                                <div class="carousel-item" data-key="side1share">
+                                    <div class="stat-value side1" id="side1Share">-</div>
+                                    <div class="stat-label" id="side1VoteLabel">Side 1 Vote</div>
                                 </div>
                                 <div class="carousel-item" data-key="year2">
                                     <div class="stat-value purple">2020</div>
@@ -153,13 +153,13 @@
                     </div>
                     <div class="ev-bar-vertical">
                         <div class="ev-bar-track">
-                            <div class="ev-bar-rep-v" id="evRepBarV"><span id="evRepV">0</span></div>
-                            <div class="ev-bar-rep-swing-v" id="evRepSwingBarV"><span id="evRepSwingV"></span></div>
-                            <div class="ev-bar-dem-swing-v" id="evDemSwingBarV"><span id="evDemSwingV"></span></div>
-                            <div class="ev-bar-dem-v" id="evDemBarV"><span id="evDemV">0</span></div>
+                            <div class="ev-bar-side1-v" id="evSide1BarV"><span id="evSide1V">0</span></div>
+                            <div class="ev-bar-side1-swing-v" id="evSide1SwingBarV"><span id="evSide1SwingV"></span></div>
+                            <div class="ev-bar-side2-swing-v" id="evSide2SwingBarV"><span id="evSide2SwingV"></span></div>
+                            <div class="ev-bar-side2-v" id="evSide2BarV"><span id="evSide2V">0</span></div>
                             <div class="ev-270-line"></div>
-                            <span class="ev-total-label rep" id="evTotalRep">0</span>
-                            <span class="ev-total-label dem" id="evTotalDem">0</span>
+                            <span class="ev-total-label side1" id="evTotalSide1">0</span>
+                            <span class="ev-total-label side2" id="evTotalSide2">0</span>
                         </div>
                     </div>
                 </div>
@@ -238,24 +238,24 @@
                             <div class="dash-label">State Partisan Distribution</div>
                             <div class="mini-stats" style="border: none; padding: 0;">
                                 <div class="mini-stat">
-                                    <div class="mini-stat-value" id="safeBlue">0</div>
-                                    <div class="mini-stat-label">Safe D</div>
+                                    <div class="mini-stat-value" id="safeSide2">0</div>
+                                    <div class="mini-stat-label" id="safeSide2Label">Safe 2</div>
                                 </div>
                                 <div class="mini-stat">
-                                    <div class="mini-stat-value" id="leanBlue">0</div>
-                                    <div class="mini-stat-label">Likely D</div>
+                                    <div class="mini-stat-value" id="leanSide2">0</div>
+                                    <div class="mini-stat-label" id="leanSide2Label">Likely 2</div>
                                 </div>
                                 <div class="mini-stat">
                                     <div class="mini-stat-value" id="tossup">0</div>
                                     <div class="mini-stat-label">Tossup/Leans</div>
                                 </div>
                                 <div class="mini-stat">
-                                    <div class="mini-stat-value" id="leanRed">0</div>
-                                    <div class="mini-stat-label">Likely R</div>
+                                    <div class="mini-stat-value" id="leanSide1">0</div>
+                                    <div class="mini-stat-label" id="leanSide1Label">Likely 1</div>
                                 </div>
                                 <div class="mini-stat">
-                                    <div class="mini-stat-value" id="safeRed">0</div>
-                                    <div class="mini-stat-label">Safe R</div>
+                                    <div class="mini-stat-value" id="safeSide1">0</div>
+                                    <div class="mini-stat-label" id="safeSide1Label">Safe 1</div>
                                 </div>
                             </div>
                         </div>

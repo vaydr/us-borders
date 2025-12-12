@@ -172,8 +172,10 @@ def init_data():
         'sideConfig': {
             'side1': algorithm.side1,
             'side1_color': algorithm.color1,
+            'side1_abbrev': getattr(algorithm, 'abbrev1', algorithm.side1[:3].upper()),
             'side2': algorithm.side2,
-            'side2_color': algorithm.color2
+            'side2_color': algorithm.color2,
+            'side2_abbrev': getattr(algorithm, 'abbrev2', algorithm.side2[:3].upper())
         }
     })
 
@@ -412,6 +414,9 @@ if __name__ == '__main__':
         side2="Democrat",
         color2="blue"
     )
+    # Custom abbreviations (optional - defaults to first 3 chars uppercased)
+    algorithm.abbrev1 = "GOP"
+    algorithm.abbrev2 = "DEM"
     
     # Initialize algorithm
     algorithm.compute_state_to_bordering_counties()

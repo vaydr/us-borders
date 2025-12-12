@@ -64,6 +64,16 @@ export let selectedMode = 'standard';
 // Carousel reference
 export let evCarousel = null;
 
+// Side configuration (from server)
+export let sideConfig = {
+    side1: 'Republican',
+    side1_color: 'red',
+    side1_abbrev: 'GOP',
+    side2: 'Democrat',
+    side2_color: 'blue',
+    side2_abbrev: 'DEM'
+};
+
 // Setters for mutable state
 export function setGeojson(val) { geojson = val; }
 export function setPalette(val) { palette = val; }
@@ -106,6 +116,7 @@ export function setCurrentScore(val) { currentScore = val; }
 export function setSelectedTarget(val) { selectedTarget = val; }
 export function setSelectedMode(val) { selectedMode = val; }
 export function setEvCarousel(val) { evCarousel = val; }
+export function setSideConfig(val) { sideConfig = val; }
 
 // Push to arrays
 export function pushScoreHistory(val) { scoreHistory.push(val); }

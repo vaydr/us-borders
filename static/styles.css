@@ -1,5 +1,25 @@
 /* US Border Redistricting Simulation Styles */
 
+/* Party color custom properties - set via JS based on server config */
+:root {
+    /* Side 1 (default: Republican/red) */
+    --side1-color: #ef4444;
+    --side1-dark: #dc2626;
+    --side1-light: #f87171;
+    --side1-lighter: #fca5a5;
+    --side1-text-dark: #7f1d1d;
+
+    /* Side 2 (default: Democrat/blue) */
+    --side2-color: #3b82f6;
+    --side2-dark: #2563eb;
+    --side2-light: #60a5fa;
+    --side2-lighter: #93c5fd;
+    --side2-text-dark: #1e3a8a;
+
+    /* Neutral/tie color */
+    --tie-color: #a855f7;
+}
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 /* Thinking spinner in iter-box */
@@ -225,20 +245,20 @@ body {
 .kway-select.blue { --kway-color: #3b82f6; }
 
 /* Party-specific active states */
-.kway-select .kway-option.active.dem {
-    background: #3b82f6;
-    border-color: #3b82f6;
-    box-shadow: 0 0 12px #3b82f6;
+.kway-select .kway-option.active.side2 {
+    background: var(--side2-color);
+    border-color: var(--side2-color);
+    box-shadow: 0 0 12px var(--side2-color);
 }
-.kway-select .kway-option.active.rep {
-    background: #ef4444;
-    border-color: #ef4444;
-    box-shadow: 0 0 12px #ef4444;
+.kway-select .kway-option.active.side1 {
+    background: var(--side1-color);
+    border-color: var(--side1-color);
+    box-shadow: 0 0 12px var(--side1-color);
 }
 .kway-select .kway-option.active.tie {
-    background: #a855f7;
-    border-color: #a855f7;
-    box-shadow: 0 0 12px #a855f7;
+    background: var(--tie-color);
+    border-color: var(--tie-color);
+    box-shadow: 0 0 12px var(--tie-color);
 }
 
 /* Glowy buttons - horizontal row */
@@ -478,9 +498,9 @@ body {
     line-height: 1;
     transition: all 0.3s ease;
 }
-.dash-value.dem, .mini-stat-value.dem { color: #3b82f6; }
-.dash-value.rep, .mini-stat-value.rep { color: #ef4444; }
-.dash-value.neutral { color: #a855f7; }
+.dash-value.side2, .mini-stat-value.side2 { color: var(--side2-color); }
+.dash-value.side1, .mini-stat-value.side1 { color: var(--side1-color); }
+.dash-value.neutral { color: var(--tie-color); }
 
 .dash-subtitle {
     font-size: 11px;
@@ -567,8 +587,8 @@ body {
     position: relative;
     box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);
 }
-.ev-bar-rep-v {
-    background: linear-gradient(180deg, #dc2626 0%, #ef4444 100%);
+.ev-bar-side1-v {
+    background: linear-gradient(180deg, var(--side1-dark) 0%, var(--side1-color) 100%);
     width: 100%;
     transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
@@ -578,10 +598,10 @@ body {
     font-size: 22px;
     color: white;
     text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-    box-shadow: 0 2px 15px rgba(239,68,68,0.5);
+    box-shadow: 0 2px 15px color-mix(in srgb, var(--side1-color) 50%, transparent);
     overflow: visible;
 }
-.ev-bar-rep-v > span {
+.ev-bar-side1-v > span {
     position: absolute;
     top: 12px;
     left: 50%;
@@ -589,8 +609,8 @@ body {
     pointer-events: none;
     z-index: 10;
 }
-.ev-bar-rep-swing-v {
-    background: linear-gradient(180deg, #f87171 0%, #fca5a5 100%);
+.ev-bar-side1-swing-v {
+    background: linear-gradient(180deg, var(--side1-light) 0%, var(--side1-lighter) 100%);
     width: 100%;
     transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
@@ -598,11 +618,11 @@ body {
     position: relative;
     font-weight: 700;
     font-size: 14px;
-    color: #7f1d1d;
+    color: var(--side1-text-dark);
     text-shadow: 0 1px 2px rgba(255,255,255,0.3);
     overflow: visible;
 }
-.ev-bar-rep-swing-v > span {
+.ev-bar-side1-swing-v > span {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -610,8 +630,8 @@ body {
     pointer-events: none;
     z-index: 10;
 }
-.ev-bar-dem-swing-v {
-    background: linear-gradient(0deg, #60a5fa 0%, #93c5fd 100%);
+.ev-bar-side2-swing-v {
+    background: linear-gradient(0deg, var(--side2-light) 0%, var(--side2-lighter) 100%);
     width: 100%;
     transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
@@ -619,11 +639,11 @@ body {
     position: relative;
     font-weight: 700;
     font-size: 14px;
-    color: #1e3a8a;
+    color: var(--side2-text-dark);
     text-shadow: 0 1px 2px rgba(255,255,255,0.3);
     overflow: visible;
 }
-.ev-bar-dem-swing-v > span {
+.ev-bar-side2-swing-v > span {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -631,8 +651,8 @@ body {
     pointer-events: none;
     z-index: 10;
 }
-.ev-bar-dem-v {
-    background: linear-gradient(0deg, #2563eb 0%, #3b82f6 100%);
+.ev-bar-side2-v {
+    background: linear-gradient(0deg, var(--side2-dark) 0%, var(--side2-color) 100%);
     width: 100%;
     transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
@@ -642,10 +662,10 @@ body {
     font-size: 22px;
     color: white;
     text-shadow: 0 -2px 4px rgba(0,0,0,0.5);
-    box-shadow: 0 -2px 15px rgba(59,130,246,0.5);
+    box-shadow: 0 -2px 15px color-mix(in srgb, var(--side2-color) 50%, transparent);
     overflow: visible;
 }
-.ev-bar-dem-v > span {
+.ev-bar-side2-v > span {
     position: absolute;
     bottom: 12px;
     left: 50%;
@@ -671,15 +691,15 @@ body {
     text-shadow: 0 0 10px currentColor;
     transition: all 0.3s ease;
 }
-.ev-total-label.rep {
+.ev-total-label.side1 {
     top: 8px;
     right: -80px;
-    color: #ef4444;
+    color: var(--side1-color);
 }
-.ev-total-label.dem {
+.ev-total-label.side2 {
     bottom: 8px;
     right: -80px;
-    color: #3b82f6;
+    color: var(--side2-color);
 }
 .ev-total-label.winner {
     font-size: 32px;
@@ -735,9 +755,9 @@ body {
     color: #00d4ff;
     text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
 }
-.ev-stat-box .stat-value.dem { color: #3b82f6; text-shadow: 0 0 10px rgba(59,130,246,0.5); }
-.ev-stat-box .stat-value.rep { color: #ef4444; text-shadow: 0 0 10px rgba(239,68,68,0.5); }
-.ev-stat-box .stat-value.purple { color: #a855f7; text-shadow: 0 0 10px rgba(168,85,247,0.5); }
+.ev-stat-box .stat-value.side2 { color: var(--side2-color); text-shadow: 0 0 10px color-mix(in srgb, var(--side2-color) 50%, transparent); }
+.ev-stat-box .stat-value.side1 { color: var(--side1-color); text-shadow: 0 0 10px color-mix(in srgb, var(--side1-color) 50%, transparent); }
+.ev-stat-box .stat-value.purple { color: var(--tie-color); text-shadow: 0 0 10px color-mix(in srgb, var(--tie-color) 50%, transparent); }
 .ev-stat-box .stat-label {
     font-size: 9px;
     color: #666;
@@ -911,9 +931,9 @@ body {
     color: #555;
     text-transform: uppercase;
 }
-.winner-dem { color: #3b82f6 !important; }
-.winner-rep { color: #ef4444 !important; }
-.winner-tie { color: #a855f7 !important; }
+.winner-side2 { color: var(--side2-color) !important; }
+.winner-side1 { color: var(--side1-color) !important; }
+.winner-tie { color: var(--tie-color) !important; }
 
 /* State tooltip */
 #stateTooltip {
@@ -943,6 +963,6 @@ body {
     color: #fff;
     font-weight: 500;
 }
-#stateTooltip .lean-dem { color: #3b82f6 !important; }
-#stateTooltip .lean-rep { color: #ef4444 !important; }
-#stateTooltip .lean-even { color: #a855f7 !important; }
+#stateTooltip .lean-side2 { color: var(--side2-color) !important; }
+#stateTooltip .lean-side1 { color: var(--side1-color) !important; }
+#stateTooltip .lean-even { color: var(--tie-color) !important; }

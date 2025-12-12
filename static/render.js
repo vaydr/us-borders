@@ -30,11 +30,14 @@ export function render() {
             if (lean === undefined) {
                 color = '#cccccc';
             } else if (lean > 0) {
-                color = '#ef4444'; // Red for Republican
+                // Side1 color from CSS
+                color = getComputedStyle(document.documentElement).getPropertyValue('--side1-color').trim() || '#ef4444';
             } else if (lean < 0) {
-                color = '#3b82f6'; // Blue for Democrat
+                // Side2 color from CSS
+                color = getComputedStyle(document.documentElement).getPropertyValue('--side2-color').trim() || '#3b82f6';
             } else {
-                color = '#a855f7'; // Purple for exact tie
+                // Tie color from CSS
+                color = getComputedStyle(document.documentElement).getPropertyValue('--tie-color').trim() || '#a855f7';
             }
         } else {
             color = state.palette[state.countyColors[geoid]] || '#cccccc';

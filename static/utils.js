@@ -1,27 +1,76 @@
 // Utility functions
 
-// Convert partisan lean (-1 to 1) to color (blue to red)
+import * as state from './state.js';
+
+// Parse hex color to RGB
+function hexToRgb(hex) {
+    // Remove # if present
+    hex = hex.replace(/^#/, '');
+    // Handle shorthand (e.g., #fff)
+    if (hex.length === 3) {
+        hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    }
+    const num = parseInt(hex, 16);
+    return {
+        r: (num >> 16) & 255,
+        g: (num >> 8) & 255,
+        b: num & 255
+    };
+}
+
+// Cache for parsed colors to avoid repeated DOM queries
+let colorCache = null;
+
+// Get or refresh the color cache from CSS variables
+function getColorCache() {
+    if (!colorCache) {
+        const root = document.documentElement;
+        const style = getComputedStyle(root);
+
+        const side1Hex = style.getPropertyValue('--side1-color').trim() || '#ef4444';
+        const side2Hex = style.getPropertyValue('--side2-color').trim() || '#3b82f6';
+        const tieHex = style.getPropertyValue('--tie-color').trim() || '#a855f7';
+
+        colorCache = {
+            side1: hexToRgb(side1Hex),
+            side2: hexToRgb(side2Hex),
+            tie: hexToRgb(tieHex)
+        };
+    }
+    return colorCache;
+}
+
+// Call this when side config changes to refresh the cache
+export function refreshColorCache() {
+    colorCache = null;
+}
+
+// Convert partisan lean (-1 to 1) to color (side2 to side1)
+// Interpolates between side colors through a neutral middle
 export function leanToColor(lean) {
     // Clamp lean to -1 to 1 range
     lean = Math.max(-1, Math.min(1, lean));
 
-    // Use a more perceptually uniform scale
-    // At 0: purple/gray, negative: blue, positive: red
+    const colors = getColorCache();
+
+    // Neutral color (light purple/gray) for the middle
+    const neutral = { r: 200, g: 200, b: 210 };
+
     if (lean < 0) {
-        // Democrat (blue) - lean is negative
-        // -1 = pure blue, 0 = light purple
+        // Side2 - lean is negative
+        // -1 = pure side2 color, 0 = neutral
         const t = Math.abs(lean); // 0 to 1
-        const r = Math.round(200 - t * 180);  // 200 -> 20
-        const g = Math.round(200 - t * 120);  // 200 -> 80
-        const b = Math.round(210 + t * 35);   // 220 -> 255
+        const r = Math.round(neutral.r + t * (colors.side2.r - neutral.r));
+        const g = Math.round(neutral.g + t * (colors.side2.g - neutral.g));
+        const b = Math.round(neutral.b + t * (colors.side2.b - neutral.b));
         return `rgb(${r},${g},${b})`;
     } else {
-        // Republican (red) - lean is positive
-        // +1 = pure red, 0 = light purple
+        // Side1 - lean is positive
+        // +1 = pure side1 color, 0 = neutral
         const t = lean; // 0 to 1
-        const r = Math.round(210 + t * 35);   // 220 -> 255
-        const g = Math.round(200 - t * 180);  // 200 -> 20
-        const b = Math.round(200 - t * 180);  // 200 -> 20
+        const r = Math.round(neutral.r + t * (colors.side1.r - neutral.r));
+        const g = Math.round(neutral.g + t * (colors.side1.g - neutral.g));
+        const b = Math.round(neutral.b + t * (colors.side1.b - neutral.b));
         return `rgb(${r},${g},${b})`;
     }
 }
@@ -31,13 +80,16 @@ export function formatLean(lean) {
     if (lean === undefined || lean === null) return 'N/A';
     const pct = Math.abs(lean * 100).toFixed(2);
     if (Math.abs(lean) < 0.000005) return 'EVEN';
-    return lean > 0 ? 'R+' + pct : 'D+' + pct;
+    // Use single-letter abbreviations from sideConfig
+    const s1Abbr = state.sideConfig.side1_abbrev?.charAt(0) || 'R';
+    const s2Abbr = state.sideConfig.side2_abbrev?.charAt(0) || 'D';
+    return lean > 0 ? `${s1Abbr}+${pct}` : `${s2Abbr}+${pct}`;
 }
 
 // Get CSS class for lean
 export function getLeanClass(lean) {
     if (lean === undefined || lean === null || Math.abs(lean) < 0.000005) return 'lean-even';
-    return lean > 0 ? 'lean-rep' : 'lean-dem';
+    return lean > 0 ? 'lean-side1' : 'lean-side2';
 }
 
 // Create a normalized key for an edge (so A->B and B->A match)

@@ -28,11 +28,11 @@ const fairnessCard = document.getElementById('fairnessCard');
 const fairnessLine = document.getElementById('fairnessLine');
 const fairnessArea = document.getElementById('fairnessArea');
 const partisanHistogram = document.getElementById('partisanHistogram');
-const safeBlueEl = document.getElementById('safeBlue');
-const leanBlueEl = document.getElementById('leanBlue');
+const safeSide2El = document.getElementById('safeSide2');
+const leanSide2El = document.getElementById('leanSide2');
 const tossupEl = document.getElementById('tossup');
-const leanRedEl = document.getElementById('leanRed');
-const safeRedEl = document.getElementById('safeRed');
+const leanSide1El = document.getElementById('leanSide1');
+const safeSide1El = document.getElementById('safeSide1');
 const swingEVsEl = document.getElementById('swingEVs');
 const currentScoreEl = document.getElementById('currentScore');
 const scoreSubtitleEl = document.getElementById('scoreSubtitle');
@@ -40,16 +40,16 @@ const scoreLine = document.getElementById('scoreLine');
 const scoreArea = document.getElementById('scoreArea');
 
 // Vertical EV bar elements
-const evDemBarV = document.getElementById('evDemBarV');
-const evRepBarV = document.getElementById('evRepBarV');
-const evDemSwingBarV = document.getElementById('evDemSwingBarV');
-const evRepSwingBarV = document.getElementById('evRepSwingBarV');
-const evDemVEl = document.getElementById('evDemV');
-const evRepVEl = document.getElementById('evRepV');
-const evDemSwingVEl = document.getElementById('evDemSwingV');
-const evRepSwingVEl = document.getElementById('evRepSwingV');
-const evTotalRepEl = document.getElementById('evTotalRep');
-const evTotalDemEl = document.getElementById('evTotalDem');
+const evSide2BarV = document.getElementById('evSide2BarV');
+const evSide1BarV = document.getElementById('evSide1BarV');
+const evSide2SwingBarV = document.getElementById('evSide2SwingBarV');
+const evSide1SwingBarV = document.getElementById('evSide1SwingBarV');
+const evSide2VEl = document.getElementById('evSide2V');
+const evSide1VEl = document.getElementById('evSide1V');
+const evSide2SwingVEl = document.getElementById('evSide2SwingV');
+const evSide1SwingVEl = document.getElementById('evSide1SwingV');
+const evTotalSide1El = document.getElementById('evTotalSide1');
+const evTotalSide2El = document.getElementById('evTotalSide2');
 const winnerVEl = document.getElementById('winnerV');
 const evMarginVEl = document.getElementById('evMarginV');
 
@@ -64,7 +64,7 @@ export function calculateDashboardMetrics() {
     const states = Object.keys(state.stateLeans);
     let swingCount = 0;
     let swingEVs = 0;
-    let safeD = 0, leanD = 0, tossup = 0, leanR = 0, safeR = 0;
+    let safeSide2 = 0, leanSide2 = 0, tossup = 0, leanSide1 = 0, safeSide1 = 0;
 
     for (const stateAbbrev of states) {
         const lean = state.stateLeans[stateAbbrev] || 0;
@@ -76,61 +76,63 @@ export function calculateDashboardMetrics() {
             swingEVs += ev;
             tossup++;
         } else if (lean < -0.15) {
-            safeD++;
+            safeSide2++;
         } else if (lean < -0.05) {
-            leanD++;
+            leanSide2++;
         } else if (lean > 0.15) {
-            safeR++;
+            safeSide1++;
         } else if (lean > 0.05) {
-            leanR++;
+            leanSide1++;
         }
     }
 
     // EV Margin: (winner EV %) - (winner popular vote %)
     // Popular vote is fixed based on county partisan lean * population
-    let demPopVote = 0, repPopVote = 0;
+    let side2PopVote = 0, side1PopVote = 0;
     for (const [geoid, lean] of Object.entries(state.partisanLean)) {
         const pop = state.population[geoid] || 0;
-        // lean > 0 means R, lean < 0 means D
-        // Approximate: if lean is 0.1, then 55% voted R, 45% voted D
-        const rPct = (1 + lean) / 2;
-        const dPct = 1 - rPct;
-        repPopVote += pop * rPct;
-        demPopVote += pop * dPct;
+        // lean > 0 means side1, lean < 0 means side2
+        // Approximate: if lean is 0.1, then 55% voted side1, 45% voted side2
+        const s1Pct = (1 + lean) / 2;
+        const s2Pct = 1 - s1Pct;
+        side1PopVote += pop * s1Pct;
+        side2PopVote += pop * s2Pct;
     }
-    const totalPopVote = demPopVote + repPopVote;
-    const demPopPct = totalPopVote > 0 ? (demPopVote / totalPopVote) * 100 : 50;
-    const repPopPct = totalPopVote > 0 ? (repPopVote / totalPopVote) * 100 : 50;
+    const totalPopVote = side2PopVote + side1PopVote;
+    const side2PopPct = totalPopVote > 0 ? (side2PopVote / totalPopVote) * 100 : 50;
+    const side1PopPct = totalPopVote > 0 ? (side1PopVote / totalPopVote) * 100 : 50;
 
-    // EV percentages from election object
-    const totalEV = state.election.d_ev + state.election.r_ev;
-    const demEVPct = totalEV > 0 ? (state.election.d_ev / totalEV) * 100 : 50;
-    const repEVPct = totalEV > 0 ? (state.election.r_ev / totalEV) * 100 : 50;
+    // EV percentages from election object (side2_ev and side1_ev)
+    const side2EV = state.election.side2_ev ?? state.election.d_ev ?? 0;
+    const side1EV = state.election.side1_ev ?? state.election.r_ev ?? 0;
+    const totalEV = side2EV + side1EV;
+    const side2EVPct = totalEV > 0 ? (side2EV / totalEV) * 100 : 50;
+    const side1EVPct = totalEV > 0 ? (side1EV / totalEV) * 100 : 50;
 
     // EV margin = winner's EV% - winner's pop%
     // Positive means EV overperformance, negative means underperformance
-    const evWinner = state.election.d_ev > state.election.r_ev ? 'dem' : state.election.r_ev > state.election.d_ev ? 'rep' : 'tie';
+    const evWinner = side2EV > side1EV ? 'side2' : side1EV > side2EV ? 'side1' : 'tie';
     let evMarginValue = 0;
-    if (evWinner === 'dem') {
-        evMarginValue = demEVPct - demPopPct;
-    } else if (evWinner === 'rep') {
-        evMarginValue = repEVPct - repPopPct;
+    if (evWinner === 'side2') {
+        evMarginValue = side2EVPct - side2PopPct;
+    } else if (evWinner === 'side1') {
+        evMarginValue = side1EVPct - side1PopPct;
     }
 
     // Popular vote margin
-    const popVoteMargin = Math.abs(demPopPct - repPopPct);
-    const popVoteWinner = demPopPct > repPopPct ? 'dem' : repPopPct > demPopPct ? 'rep' : 'tie';
+    const popVoteMargin = Math.abs(side2PopPct - side1PopPct);
+    const popVoteWinner = side2PopPct > side1PopPct ? 'side2' : side1PopPct > side2PopPct ? 'side1' : 'tie';
 
     return {
         swingCount,
         swingEVs,
         evMarginValue,
         evWinner,
-        categories: { safeD, leanD, tossup, leanR, safeR },
+        categories: { safeSide2, leanSide2, tossup, leanSide1, safeSide1 },
         stateCount: states.length,
         popVote: {
-            demPct: demPopPct,
-            repPct: repPopPct,
+            side2Pct: side2PopPct,
+            side1Pct: side1PopPct,
             margin: popVoteMargin,
             winner: popVoteWinner,
             total: totalPopVote
@@ -177,15 +179,25 @@ export function updateHistogram() {
 
     const maxBin = Math.max(...bins, 1);
 
-    // Colors: bins 0-1 safe D, 2-3 likely D, 4-7 lean D, 8-11 tossup, 12-15 lean R, 16-17 likely R, 18-19 safe R
+    // Get colors from CSS custom properties
+    const root = document.documentElement;
+    const s2Dark = getComputedStyle(root).getPropertyValue('--side2-dark').trim() || '#2563eb';
+    const s2Main = getComputedStyle(root).getPropertyValue('--side2-color').trim() || '#3b82f6';
+    const s2Light = getComputedStyle(root).getPropertyValue('--side2-light').trim() || '#60a5fa';
+    const tieColor = getComputedStyle(root).getPropertyValue('--tie-color').trim() || '#a855f7';
+    const s1Light = getComputedStyle(root).getPropertyValue('--side1-light').trim() || '#f87171';
+    const s1Main = getComputedStyle(root).getPropertyValue('--side1-color').trim() || '#ef4444';
+    const s1Dark = getComputedStyle(root).getPropertyValue('--side1-dark').trim() || '#dc2626';
+
+    // Colors: bins 0-1 safe side2, 2-3 likely side2, 4-7 lean side2, 8-11 tossup, 12-15 lean side1, 16-17 likely side1, 18-19 safe side1
     const getColor = (i) => {
-        if (i < 2) return '#2563eb';      // Safe D
-        if (i < 4) return '#3b82f6';      // Likely D (between safe and lean)
-        if (i < 8) return '#60a5fa';      // Lean D
-        if (i < 12) return '#a855f7';     // Tossup
-        if (i < 16) return '#f87171';     // Lean R
-        if (i < 18) return '#ef4444';     // Likely R (between lean and safe)
-        return '#dc2626';                  // Safe R
+        if (i < 2) return s2Dark;      // Safe side2
+        if (i < 4) return s2Main;      // Likely side2
+        if (i < 8) return s2Light;     // Lean side2
+        if (i < 12) return tieColor;   // Tossup
+        if (i < 16) return s1Light;    // Lean side1
+        if (i < 18) return s1Main;     // Likely side1
+        return s1Dark;                  // Safe side1
     };
 
     // Flex widths proportional to bin range size
@@ -201,7 +213,9 @@ export function updateHistogram() {
 
 // Calculate tipping point state
 export function calculateTippingPoint() {
-    const winner = state.election.d_ev > state.election.r_ev ? 'dem' : state.election.r_ev > state.election.d_ev ? 'rep' : 'tie';
+    const side2EV = state.election.side2_ev ?? state.election.d_ev ?? 0;
+    const side1EV = state.election.side1_ev ?? state.election.r_ev ?? 0;
+    const winner = side2EV > side1EV ? 'side2' : side1EV > side2EV ? 'side1' : 'tie';
     if (winner === 'tie') return null;
 
     const states = Object.keys(state.stateLeans);
@@ -211,9 +225,9 @@ export function calculateTippingPoint() {
         const lean = state.stateLeans[stateAbbrev] || 0;
         const ev = state.stateEVs[stateAbbrev] || 0;
         // winnerMargin: positive = good for winner, negative = bad for winner
-        // If dem wins, negative lean is good (dem-leaning)
-        // If rep wins, positive lean is good (rep-leaning)
-        const winnerMargin = winner === 'dem' ? -lean : lean;
+        // If side2 wins, negative lean is good (side2-leaning)
+        // If side1 wins, positive lean is good (side1-leaning)
+        const winnerMargin = winner === 'side2' ? -lean : lean;
         return { state: stateAbbrev, ev, lean, winnerMargin };
     });
 
@@ -251,21 +265,24 @@ export function updateTippingPoint() {
     if (tippingStateEl) {
         const fullName = state.stateNames[tipping.state] || tipping.state;
         tippingStateEl.textContent = fullName;
-        // Color based on lean
+        // Color based on lean - use CSS custom properties
+        const root = document.documentElement;
         const lean = tipping.lean;
         if (Math.abs(lean) <= 0.05) {
-            tippingStateEl.style.color = '#a855f7';
+            tippingStateEl.style.color = getComputedStyle(root).getPropertyValue('--tie-color').trim() || '#a855f7';
         } else if (lean < 0) {
-            tippingStateEl.style.color = '#3b82f6';
+            tippingStateEl.style.color = getComputedStyle(root).getPropertyValue('--side2-color').trim() || '#3b82f6';
         } else {
-            tippingStateEl.style.color = '#ef4444';
+            tippingStateEl.style.color = getComputedStyle(root).getPropertyValue('--side1-color').trim() || '#ef4444';
         }
     }
 
     // Update subtitle with margin
     if (tippingSubtitleEl) {
         const marginPct = Math.abs(tipping.margin * 100).toFixed(1);
-        const party = tipping.lean < 0 ? 'D' : tipping.lean > 0 ? 'R' : '';
+        const s1Abbr = state.sideConfig.side1_abbrev?.charAt(0) || 'R';
+        const s2Abbr = state.sideConfig.side2_abbrev?.charAt(0) || 'D';
+        const party = tipping.lean < 0 ? s2Abbr : tipping.lean > 0 ? s1Abbr : '';
         tippingSubtitleEl.textContent = `${tipping.ev} EVs • ${party}+${marginPct}%`;
     }
 
@@ -344,10 +361,10 @@ function attachEVBarHoverHandlers() {
 // Update vertical EV bar
 export function updateVerticalEVBar() {
     // Build arrays of states per segment
-    const repSafeStates = [];
-    const repSwingStates = [];
-    const demSwingStates = [];
-    const demSafeStates = [];
+    const side1SafeStates = [];
+    const side1SwingStates = [];
+    const side2SwingStates = [];
+    const side2SafeStates = [];
 
     for (const [stateAbbrev, lean] of Object.entries(state.stateLeans)) {
         const ev = state.stateEVs[stateAbbrev] || 0;
@@ -358,85 +375,88 @@ export function updateVerticalEVBar() {
 
         if (lean < 0) {
             if (isSwing) {
-                demSwingStates.push(stateData);
+                side2SwingStates.push(stateData);
             } else {
-                demSafeStates.push(stateData);
+                side2SafeStates.push(stateData);
             }
         } else if (lean > 0) {
             if (isSwing) {
-                repSwingStates.push(stateData);
+                side1SwingStates.push(stateData);
             } else {
-                repSafeStates.push(stateData);
+                side1SafeStates.push(stateData);
             }
         } else {
             // Exactly 0 - put in swing (could go either way)
-            demSwingStates.push({ ...stateData, ev: ev / 2 });
-            repSwingStates.push({ ...stateData, ev: ev / 2 });
+            side2SwingStates.push({ ...stateData, ev: ev / 2 });
+            side1SwingStates.push({ ...stateData, ev: ev / 2 });
         }
     }
 
     // Sort by lean: most partisan at edges, swing-adjacent near middle
-    // Rep segments: highest lean first (top of bar, most R)
-    // Dem segments: lowest lean first (bottom of bar, most D)
-    repSafeStates.sort((a, b) => b.lean - a.lean);
-    repSwingStates.sort((a, b) => b.lean - a.lean);
-    demSwingStates.sort((a, b) => b.lean - a.lean);  // Least negative (closest to 0) first
-    demSafeStates.sort((a, b) => b.lean - a.lean);   // Least negative first, most D at bottom
+    // Side1 segments: highest lean first (top of bar, most side1)
+    // Side2 segments: lowest lean first (bottom of bar, most side2)
+    side1SafeStates.sort((a, b) => b.lean - a.lean);
+    side1SwingStates.sort((a, b) => b.lean - a.lean);
+    side2SwingStates.sort((a, b) => b.lean - a.lean);  // Least negative (closest to 0) first
+    side2SafeStates.sort((a, b) => b.lean - a.lean);   // Least negative first, most side2 at bottom
 
     // Calculate totals
-    const repSafeEV = repSafeStates.reduce((sum, s) => sum + s.ev, 0);
-    const repSwingEV = repSwingStates.reduce((sum, s) => sum + s.ev, 0);
-    const demSwingEV = demSwingStates.reduce((sum, s) => sum + s.ev, 0);
-    const demSafeEV = demSafeStates.reduce((sum, s) => sum + s.ev, 0);
+    const side1SafeEV = side1SafeStates.reduce((sum, s) => sum + s.ev, 0);
+    const side1SwingEV = side1SwingStates.reduce((sum, s) => sum + s.ev, 0);
+    const side2SwingEV = side2SwingStates.reduce((sum, s) => sum + s.ev, 0);
+    const side2SafeEV = side2SafeStates.reduce((sum, s) => sum + s.ev, 0);
 
-    const totalEV = repSafeEV + repSwingEV + demSwingEV + demSafeEV;
-    const repSafePct = totalEV > 0 ? (repSafeEV / totalEV) * 100 : 25;
-    const repSwingPct = totalEV > 0 ? (repSwingEV / totalEV) * 100 : 25;
-    const demSwingPct = totalEV > 0 ? (demSwingEV / totalEV) * 100 : 25;
-    const demSafePct = totalEV > 0 ? (demSafeEV / totalEV) * 100 : 25;
+    const totalEV = side1SafeEV + side1SwingEV + side2SwingEV + side2SafeEV;
+    const side1SafePct = totalEV > 0 ? (side1SafeEV / totalEV) * 100 : 25;
+    const side1SwingPct = totalEV > 0 ? (side1SwingEV / totalEV) * 100 : 25;
+    const side2SwingPct = totalEV > 0 ? (side2SwingEV / totalEV) * 100 : 25;
+    const side2SafePct = totalEV > 0 ? (side2SafeEV / totalEV) * 100 : 25;
 
     // Set segment heights and generate state segment HTML
-    if (evRepBarV) {
-        evRepBarV.style.height = repSafePct + '%';
-        const labelHTML = `<span id="evRepV">${Math.round(repSafeEV)}</span>`;
-        evRepBarV.innerHTML = buildStateSegmentHTML(repSafeStates, repSafePct) + labelHTML;
+    if (evSide1BarV) {
+        evSide1BarV.style.height = side1SafePct + '%';
+        const labelHTML = `<span id="evSide1V">${Math.round(side1SafeEV)}</span>`;
+        evSide1BarV.innerHTML = buildStateSegmentHTML(side1SafeStates, side1SafePct) + labelHTML;
     }
-    if (evRepSwingBarV) {
-        evRepSwingBarV.style.height = repSwingPct + '%';
-        const labelHTML = `<span id="evRepSwingV">${repSwingEV > 0 ? Math.round(repSwingEV) : ''}</span>`;
-        evRepSwingBarV.innerHTML = buildStateSegmentHTML(repSwingStates, repSwingPct) + labelHTML;
+    if (evSide1SwingBarV) {
+        evSide1SwingBarV.style.height = side1SwingPct + '%';
+        const labelHTML = `<span id="evSide1SwingV">${side1SwingEV > 0 ? Math.round(side1SwingEV) : ''}</span>`;
+        evSide1SwingBarV.innerHTML = buildStateSegmentHTML(side1SwingStates, side1SwingPct) + labelHTML;
     }
-    if (evDemSwingBarV) {
-        evDemSwingBarV.style.height = demSwingPct + '%';
-        const labelHTML = `<span id="evDemSwingV">${demSwingEV > 0 ? Math.round(demSwingEV) : ''}</span>`;
-        evDemSwingBarV.innerHTML = buildStateSegmentHTML(demSwingStates, demSwingPct) + labelHTML;
+    if (evSide2SwingBarV) {
+        evSide2SwingBarV.style.height = side2SwingPct + '%';
+        const labelHTML = `<span id="evSide2SwingV">${side2SwingEV > 0 ? Math.round(side2SwingEV) : ''}</span>`;
+        evSide2SwingBarV.innerHTML = buildStateSegmentHTML(side2SwingStates, side2SwingPct) + labelHTML;
     }
-    if (evDemBarV) {
-        evDemBarV.style.height = demSafePct + '%';
-        const labelHTML = `<span id="evDemV">${Math.round(demSafeEV)}</span>`;
-        evDemBarV.innerHTML = buildStateSegmentHTML(demSafeStates, demSafePct) + labelHTML;
+    if (evSide2BarV) {
+        evSide2BarV.style.height = side2SafePct + '%';
+        const labelHTML = `<span id="evSide2V">${Math.round(side2SafeEV)}</span>`;
+        evSide2BarV.innerHTML = buildStateSegmentHTML(side2SafeStates, side2SafePct) + labelHTML;
     }
 
     // Attach hover handlers to newly created segments
     attachEVBarHoverHandlers();
 
     // Update winner (based on total EVs)
-    const totalDem = demSafeEV + demSwingEV;
-    const totalRep = repSafeEV + repSwingEV;
-    const winner = totalDem > totalRep ? 'DEM' : totalRep > totalDem ? 'GOP' : 'TIE';
+    const totalSide2 = side2SafeEV + side2SwingEV;
+    const totalSide1 = side1SafeEV + side1SwingEV;
+    const s1Abbr = state.sideConfig.side1_abbrev || 'S1';
+    const s2Abbr = state.sideConfig.side2_abbrev || 'S2';
+    const winner = totalSide2 > totalSide1 ? s2Abbr : totalSide1 > totalSide2 ? s1Abbr : 'TIE';
+    const winnerSide = totalSide2 > totalSide1 ? 'side2' : totalSide1 > totalSide2 ? 'side1' : 'tie';
 
-    // Update total labels on the left side
-    if (evTotalRepEl) {
-        evTotalRepEl.textContent = Math.round(totalRep);
-        evTotalRepEl.className = 'ev-total-label rep' + (winner === 'GOP' ? ' winner' : '');
+    // Update total labels on the right side
+    if (evTotalSide1El) {
+        evTotalSide1El.textContent = Math.round(totalSide1);
+        evTotalSide1El.className = 'ev-total-label side1' + (winnerSide === 'side1' ? ' winner' : '');
     }
-    if (evTotalDemEl) {
-        evTotalDemEl.textContent = Math.round(totalDem);
-        evTotalDemEl.className = 'ev-total-label dem' + (winner === 'DEM' ? ' winner' : '');
+    if (evTotalSide2El) {
+        evTotalSide2El.textContent = Math.round(totalSide2);
+        evTotalSide2El.className = 'ev-total-label side2' + (winnerSide === 'side2' ? ' winner' : '');
     }
 
-    // Calculate signed margin for coloring: positive = R, negative = D
-    const signedMarginPct = (totalRep - totalDem) / 538;
+    // Calculate signed margin for coloring: positive = side1, negative = side2
+    const signedMarginPct = (totalSide1 - totalSide2) / 538;
 
     if (winnerVEl) {
         winnerVEl.textContent = winner;
@@ -445,7 +465,7 @@ export function updateVerticalEVBar() {
     }
 
     // Update EV margin
-    const margin = Math.abs(totalDem - totalRep);
+    const margin = Math.abs(totalSide2 - totalSide1);
     if (evMarginVEl) {
         evMarginVEl.textContent = Math.round(margin);
         evMarginVEl.className = 'stat-value';
@@ -507,11 +527,11 @@ export function updateDashboard() {
     updateHistogram();
 
     // Update category counts
-    if (safeBlueEl) safeBlueEl.textContent = metrics.categories.safeD;
-    if (leanBlueEl) leanBlueEl.textContent = metrics.categories.leanD;
+    if (safeSide2El) safeSide2El.textContent = metrics.categories.safeSide2;
+    if (leanSide2El) leanSide2El.textContent = metrics.categories.leanSide2;
     if (tossupEl) tossupEl.textContent = metrics.categories.tossup;
-    if (leanRedEl) leanRedEl.textContent = metrics.categories.leanR;
-    if (safeRedEl) safeRedEl.textContent = metrics.categories.safeR;
+    if (leanSide1El) leanSide1El.textContent = metrics.categories.leanSide1;
+    if (safeSide1El) safeSide1El.textContent = metrics.categories.safeSide1;
 
     // Update swing EVs
     if (swingEVsEl) swingEVsEl.textContent = metrics.swingEVs;
@@ -525,8 +545,11 @@ export function updateDashboard() {
     // Update EV carousel
     if (state.evCarousel) {
         const pv = metrics.popVote;
-        state.evCarousel.updateItem('demshare2', pv.demPct.toFixed(1) + '%', '#3b82f6');
-        state.evCarousel.updateItem('repshare2', pv.repPct.toFixed(1) + '%', '#ef4444');
+        // Get colors from CSS custom properties
+        const side2Color = getComputedStyle(document.documentElement).getPropertyValue('--side2-color').trim() || '#3b82f6';
+        const side1Color = getComputedStyle(document.documentElement).getPropertyValue('--side1-color').trim() || '#ef4444';
+        state.evCarousel.updateItem('side2share', pv.side2Pct.toFixed(1) + '%', side2Color);
+        state.evCarousel.updateItem('side1share', pv.side1Pct.toFixed(1) + '%', side1Color);
     }
 
     // Update score display and line chart
