@@ -11,9 +11,26 @@ const stateTooltip = document.getElementById('stateTooltip');
 const iterBox = document.getElementById('iterBox');
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
+const thinkingSpinner = document.getElementById('thinkingSpinner');
+
+// Show thinking spinner (single spin then fade)
+function showThinkingSpinner() {
+    if (!thinkingSpinner || !state.diffMode) return;
+
+    // Remove and re-add class to restart animation
+    thinkingSpinner.classList.remove('spin');
+    // Force reflow to restart animation
+    void thinkingSpinner.offsetWidth;
+    thinkingSpinner.classList.add('spin');
+}
 
 // Setup socket event listeners
 export function setupSocketHandlers() {
+    // Handle thinking spinner (heap used for smart move selection)
+    state.socket.on('thinking', () => {
+        showThinkingSpinner();
+    });
+
     state.socket.on('color_update', (data) => {
         // Track changed counties with timestamps for fade animation
         if (data.countyToState && state.diffMode) {

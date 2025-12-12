@@ -338,7 +338,7 @@ def iteration_greedy(target='Republican', mode='standard', alpha=0.001):
             # Frontier exhausted, reset for next time
             traversal_frontier = []
             traversal_visited = set()
-            return False
+            return False, False
 
     elif mode == 'follow_the_leader':
         # Follow-the-leader: loser becomes next grower
@@ -350,7 +350,7 @@ def iteration_greedy(target='Republican', mode='standard', alpha=0.001):
         if state_to_grow not in state_to_bordering_counties or not state_to_bordering_counties[state_to_grow]:
             follow_the_leader_state = None
             last_moved_county = None
-            return False
+            return False, False
 
         # Exclude the county that was just moved to prevent ping-pong
         if last_moved_county is not None:
@@ -358,14 +358,14 @@ def iteration_greedy(target='Republican', mode='standard', alpha=0.001):
             if pivot_county is None:
                 follow_the_leader_state = None
                 last_moved_county = None
-                return False
+                return False, False
         else:
             pivot_county = sample_adjacent_county(state_to_grow)
 
     else:  # standard mode
         state_to_grow = sample_state()
         if state_to_grow not in state_to_bordering_counties or not state_to_bordering_counties[state_to_grow]:
-            return False
+            return False, False
         pivot_county = sample_adjacent_county(state_to_grow)
 
     from_state = county_to_state[pivot_county]
@@ -381,7 +381,7 @@ def iteration_greedy(target='Republican', mode='standard', alpha=0.001):
         state_to_counties[state_to_grow].remove(pivot_county)
         state_to_counties[from_state].add(pivot_county)
         county_to_state[pivot_county] = from_state
-        return False
+        return False, False
 
     # Compute new score
     compute_state_to_bordering_counties()
@@ -405,7 +405,7 @@ def iteration_greedy(target='Republican', mode='standard', alpha=0.001):
             for neighbor in county_to_neighbors.get(pivot_county, []):
                 if neighbor not in traversal_visited and county_to_state.get(neighbor) != state_to_grow:
                     traversal_frontier.append(neighbor)
-        return True
+        return True, False  # (success, heap_used=False for normal acceptance)
 
     # Move was worse or population conditions not met - undo it
     state_to_counties[state_to_grow].remove(pivot_county)
@@ -425,9 +425,9 @@ def iteration_greedy(target='Republican', mode='standard', alpha=0.001):
                 _reset_rejected_tracking()
                 # Mode-specific bookkeeping for heap-selected move
                 # Note: We don't know which county was moved, so skip follow_the_leader/bfs/dfs bookkeeping
-                return True
+                return True, True  # (success, heap_used)
 
-    return False
+    return False, False  # (success, heap_used)
 
 def _population_conditions_met():
     global state_to_counties, county_to_population

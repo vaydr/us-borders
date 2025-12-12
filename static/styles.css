@@ -2,6 +2,38 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+/* Thinking spinner in iter-box */
+.thinking-spinner {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 14px;
+    height: 14px;
+    border: 2px solid transparent;
+    border-top-color: #39ff14;
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.thinking-spinner.spin {
+    animation: thinkingSpin 0.6s linear forwards;
+}
+
+@keyframes thinkingSpin {
+    0% {
+        opacity: 1;
+        transform: rotate(0deg);
+    }
+    80% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: rotate(360deg);
+    }
+}
+
 body {
     font-family: "Geom", sans-serif;
     font-optical-sizing: auto;
@@ -38,6 +70,7 @@ body {
 
 /* Glowy iteration counter */
 .iter-box {
+    position: relative;
     background: rgba(10, 10, 20, 0.85);
     backdrop-filter: blur(10px);
     padding: 10px 14px;

@@ -183,16 +183,24 @@ def start_algorithm(data):
     def run():
         global is_running
         is_running = True
+        heap_used_this_batch = False
 
         try:
             for i in range(iterations):
                 if not is_running:
                     break
 
-                my_sim.iteration_greedy(target, mode)
+                success, heap_used = my_sim.iteration_greedy(target, mode)
+                if heap_used:
+                    heap_used_this_batch = True
 
                 # Send color update every N iterations
                 if (i + 1) % render_every == 0 or (i + 1) == iterations:
+                    # Emit thinking notification if heap was used this batch
+                    if heap_used_this_batch:
+                        socketio.emit('thinking')
+                        heap_used_this_batch = False
+
                     # Don't regenerate colors - state colors are fixed at startup
                     socketio.emit('color_update', {
                         'generation': i + 1,
