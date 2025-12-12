@@ -488,6 +488,17 @@ body {
     margin-top: 2px;
 }
 
+.dash-subtitle.clickable {
+    cursor: pointer;
+    color: #00d4ff;
+    transition: all 0.2s ease;
+}
+
+.dash-subtitle.clickable:hover {
+    color: #39ff14;
+    text-shadow: 0 0 6px rgba(57, 255, 20, 0.5);
+}
+
 /* Line chart for stats */
 .stat-chart {
     height: 30px;

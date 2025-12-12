@@ -30,6 +30,14 @@ paused_state = {
     'render_every': 10
 }
 
+# Best state tracking (snapshot when best score achieved)
+best_state = {
+    'score': float('-inf'),
+    'iteration': 0,
+    'county_to_state': {},
+    'state_to_counties': {}
+}
+
 # Saved initial state for reset
 initial_county_to_state = {}
 initial_state_to_counties = {}
@@ -175,7 +183,7 @@ def get_current_score(target):
 @socketio.on('start_algorithm')
 def start_algorithm(data):
     """Run simulation - sends only color updates, not images."""
-    global is_running, paused_state, stop_event
+    global is_running, paused_state, stop_event, best_state
 
     if is_running:
         emit('error', {'message': 'Already running'})
@@ -202,12 +210,19 @@ def start_algorithm(data):
         print(f"Starting {iterations} iterations, updating every {render_every}, target: {target}, mode: {mode}")
         # Reset follow-the-leader state only on fresh start
         my_sim.reset_follow_the_leader()
+        # Reset best state tracking on fresh start
+        best_state = {
+            'score': float('-inf'),
+            'iteration': 0,
+            'county_to_state': {},
+            'state_to_counties': {}
+        }
 
     # Clear stop event
     stop_event.clear()
 
     def run():
-        global is_running, paused_state
+        global is_running, paused_state, best_state
         is_running = True
         heap_used_this_batch = False
 
@@ -236,20 +251,32 @@ def start_algorithm(data):
 
                 # Send color update every N iterations
                 if (i + 1) % render_every == 0 or (i + 1) == iterations:
-                    # Emit thinking notification if heap was used this batch
                     if heap_used_this_batch:
                         socketio.emit('thinking')
                         heap_used_this_batch = False
 
-                    # Don't regenerate colors - state colors are fixed at startup
+                    score = get_current_score(target)
+                    current_iter = i + 1
+
+                    # Track best and save snapshot
+                    if score > best_state['score']:
+                        best_state = {
+                            'score': score,
+                            'iteration': current_iter,
+                            'county_to_state': dict(my_sim.county_to_state),
+                            'state_to_counties': {s: set(c) for s, c in my_sim.state_to_counties.items()}
+                        }
+
                     socketio.emit('color_update', {
-                        'generation': i + 1,
+                        'generation': current_iter,
                         'total': iterations,
                         'colors': get_county_colors(),
                         'stateLeans': get_state_partisan_leans(),
                         'countyToState': {str(geoid): str(state) for geoid, state in my_sim.county_to_state.items()},
                         'election': get_election_results(),
-                        'score': get_current_score(target)
+                        'score': score,
+                        'bestScore': best_state['score'],
+                        'bestIteration': best_state['iteration']
                     })
             else:
                 # Loop completed without break (not paused)
@@ -281,17 +308,23 @@ def stop_algorithm():
 
 @socketio.on('reset_algorithm')
 def reset_algorithm():
-    global is_running, paused_state, stop_event
+    global is_running, paused_state, stop_event, best_state
     stop_event.set()  # Stop any running algorithm
     is_running = False
 
-    # Clear pause state
+    # Clear pause and best state
     paused_state = {
         'iteration': 0,
         'total_iterations': 0,
         'target': 'Republican',
         'mode': 'standard',
         'render_every': 10
+    }
+    best_state = {
+        'score': float('-inf'),
+        'iteration': 0,
+        'county_to_state': {},
+        'state_to_counties': {}
     }
 
     # Restore initial state from saved copies
@@ -311,6 +344,49 @@ def reset_algorithm():
         'stateLeans': get_state_partisan_leans(),
         'countyToState': {str(geoid): str(state) for geoid, state in my_sim.county_to_state.items()},
         'election': get_election_results()
+    })
+
+
+@socketio.on('restore_best')
+def restore_best():
+    """Restore to the best scoring state and set up to resume from there."""
+    global is_running, paused_state, stop_event, best_state
+
+    if best_state['iteration'] == 0:
+        emit('error', {'message': 'No best state saved yet'})
+        return
+
+    # Stop if running
+    stop_event.set()
+    is_running = False
+
+    # Restore state from best snapshot
+    my_sim.county_to_state.clear()
+    my_sim.county_to_state.update(best_state['county_to_state'])
+
+    my_sim.state_to_counties.clear()
+    for state, counties in best_state['state_to_counties'].items():
+        my_sim.state_to_counties[state] = set(counties)
+
+    my_sim.compute_state_to_bordering_counties()
+
+    # Set up paused_state to resume from best iteration
+    paused_state = {
+        'iteration': best_state['iteration'],
+        'total_iterations': paused_state.get('total_iterations', 100000),
+        'target': paused_state.get('target', 'Republican'),
+        'mode': paused_state.get('mode', 'standard'),
+        'render_every': paused_state.get('render_every', 10)
+    }
+
+    print(f"Restored to best state at iteration {best_state['iteration']} with score {best_state['score']:.2f}")
+    emit('best_restored', {
+        'colors': get_county_colors(),
+        'stateLeans': get_state_partisan_leans(),
+        'countyToState': {str(geoid): str(state) for geoid, state in my_sim.county_to_state.items()},
+        'election': get_election_results(),
+        'score': best_state['score'],
+        'iteration': best_state['iteration']
     })
 
 

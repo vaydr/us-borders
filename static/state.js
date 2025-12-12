@@ -43,6 +43,7 @@ export let fairnessHistory = []; // [{iter, value}, ...]
 export let bestScore = -Infinity;
 export let bestScoreInt = -Infinity; // Track best integer part for pulse
 export let bestEvMarginInt = -1; // Track best EV margin integer for pulse
+export let bestIteration = 0; // Iteration when best score was achieved
 
 // Tipping point tracking
 export let tippingPointCounts = {};  // state -> count of times as tipping point
@@ -92,6 +93,7 @@ export function setFairnessHistory(val) { fairnessHistory = val; }
 export function setBestScore(val) { bestScore = val; }
 export function setBestScoreInt(val) { bestScoreInt = val; }
 export function setBestEvMarginInt(val) { bestEvMarginInt = val; }
+export function setBestIteration(val) { bestIteration = val; }
 export function setTippingPointCounts(val) { tippingPointCounts = val; }
 export function setCurrentTippingPoint(val) { currentTippingPoint = val; }
 export function setLastTippingPoint(val) { lastTippingPoint = val; }

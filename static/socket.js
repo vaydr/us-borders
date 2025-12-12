@@ -32,10 +32,14 @@ export function setupSocketHandlers() {
     });
 
     state.socket.on('color_update', (data) => {
-        const { colors, stateLeans, countyToState, election, score, generation } = data;
+        const { colors, stateLeans, countyToState, election, score, generation, bestScore, bestIteration } = data;
 
         // Update colors directly (no copy needed)
         state.setCountyColors(colors);
+
+        // Track best score/iteration from server
+        if (bestScore !== undefined) state.setBestScore(bestScore);
+        if (bestIteration !== undefined) state.setBestIteration(bestIteration);
 
         // Handle county-to-state updates
         if (countyToState) {
@@ -143,5 +147,39 @@ export function setupSocketHandlers() {
         updateVerticalEVBar();
         updateDashboard();
         if (iterationEl) iterationEl.textContent = '0';
+    });
+
+    state.socket.on('best_restored', (data) => {
+        const { colors, countyToState, stateLeans, election, score, iteration } = data;
+
+        state.setCountyColors(colors);
+        if (countyToState) {
+            state.setCountyToState(countyToState);
+            state.setPreviousCountyToState(Object.assign({}, countyToState));
+            state.setCountyChangeTime({});
+            if (state.diffAnimationFrame) {
+                cancelAnimationFrame(state.diffAnimationFrame);
+                state.setDiffAnimationFrame(null);
+            }
+            updateStateCountyCounts();
+        }
+        if (stateLeans) state.setStateLeans(stateLeans);
+        if (election) state.setElection(election);
+        if (score !== undefined) state.setCurrentScore(score);
+
+        // Update UI to paused state at best iteration
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+        if (iterBox) {
+            iterBox.classList.remove('running', 'stopping');
+            iterBox.classList.add('paused');
+        }
+        state.setIsAlgorithmRunning(false);
+
+        render();
+        updateDashboard();
+        updateVerticalEVBar();
+        if (iterationEl) iterationEl.textContent = iteration.toLocaleString();
+        console.log(`Restored to best state at iteration ${iteration} with score ${score.toFixed(2)}`);
     });
 }

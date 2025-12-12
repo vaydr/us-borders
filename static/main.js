@@ -3,7 +3,7 @@
 import * as state from './state.js';
 import { computeBounds, precomputePaths } from './geo.js';
 import { render } from './render.js';
-import { updateDashboard, updateVerticalEVBar } from './dashboard.js';
+import { updateDashboard, updateVerticalEVBar, setupScoreRestoreClick } from './dashboard.js';
 import { buildStateData, setupTooltipHandlers } from './tooltip.js';
 import { setupAllControls, StatCarousel } from './controls.js';
 import { setupSocketHandlers } from './socket.js';
@@ -84,6 +84,9 @@ async function init() {
         // Setup socket handlers
         setupSocketHandlers();
 
+        // Setup score restore click handler
+        setupScoreRestoreClick();
+
         // Initial render
         render();
 
@@ -152,6 +155,10 @@ function setupButtonHandlers() {
 
     state.socket.on('reset_complete', () => {
         isPaused = false;
+    });
+
+    state.socket.on('best_restored', () => {
+        isPaused = true;  // Can resume from best state
     });
 }
 

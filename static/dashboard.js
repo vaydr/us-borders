@@ -3,6 +3,19 @@
 import * as state from './state.js';
 import { leanToColor, renderLineChart } from './utils.js';
 
+// Setup click handler for restoring best state
+export function setupScoreRestoreClick() {
+    const scoreSubtitleEl = document.getElementById('scoreSubtitle');
+    if (!scoreSubtitleEl) return;
+
+    scoreSubtitleEl.addEventListener('click', () => {
+        // Only restore if we have a best iteration
+        if (state.bestIteration > 0) {
+            state.socket.emit('restore_best');
+        }
+    });
+}
+
 // DOM elements
 const swingStatesEl = document.getElementById('swingStates');
 const swingCard = document.getElementById('swingCard');
@@ -459,22 +472,25 @@ export function updateDashboard() {
     if (currentScoreEl) {
         currentScoreEl.textContent = state.currentScore.toFixed(2);
 
-        // Pulse on new integer milestone
-        if (state.currentScore > state.bestScore) {
-            state.setBestScore(state.currentScore);
-            const scoreInt = Math.floor(state.currentScore);
-            if (scoreInt > state.bestScoreInt) {
-                state.setBestScoreInt(scoreInt);
-                const scoreCard = document.getElementById('scoreCard');
-                if (scoreCard) {
-                    scoreCard.classList.add('pulse');
-                    setTimeout(() => scoreCard.classList.remove('pulse'), 500);
-                }
+        // Pulse on new best score integer milestone (server provides bestScore)
+        const scoreInt = Math.floor(state.bestScore);
+        if (scoreInt > state.bestScoreInt) {
+            state.setBestScoreInt(scoreInt);
+            const scoreCard = document.getElementById('scoreCard');
+            if (scoreCard) {
+                scoreCard.classList.add('pulse');
+                setTimeout(() => scoreCard.classList.remove('pulse'), 500);
             }
         }
     }
     if (scoreSubtitleEl) {
-        scoreSubtitleEl.textContent = `best: ${state.bestScore.toFixed(2)}`;
+        if (state.bestIteration > 0) {
+            scoreSubtitleEl.textContent = `best: ${state.bestScore.toFixed(2)} @ ${state.bestIteration.toLocaleString()}`;
+            scoreSubtitleEl.classList.add('clickable');
+        } else {
+            scoreSubtitleEl.textContent = 'higher is better';
+            scoreSubtitleEl.classList.remove('clickable');
+        }
     }
 
     // Draw score line chart
@@ -488,6 +504,7 @@ export function resetDashboard() {
     state.setBestScore(-Infinity);
     state.setBestScoreInt(-Infinity);
     state.setBestEvMarginInt(-1);
+    state.setBestIteration(0);
     state.clearScoreHistory();
     state.clearSwingHistory();
     state.clearFairnessHistory();
