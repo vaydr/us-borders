@@ -530,6 +530,7 @@ body {
     width: 100%;
     height: 100%;
 }
+
 .stat-line {
     fill: none;
     stroke-width: 1.5;
@@ -544,11 +545,21 @@ body {
     stroke: #a855f7;
     filter: drop-shadow(0 0 3px #a855f7) drop-shadow(0 0 6px #a855f7);
 }
+.stat-line.side1 {
+    stroke: var(--side1-color);
+    filter: drop-shadow(0 0 3px var(--side1-color)) drop-shadow(0 0 6px var(--side1-color));
+}
+.stat-line.side2 {
+    stroke: var(--side2-color);
+    filter: drop-shadow(0 0 3px var(--side2-color)) drop-shadow(0 0 6px var(--side2-color));
+}
 .stat-area {
     opacity: 0.3;
 }
 .stat-area.yellow { fill: url(#yellowGradient); }
 .stat-area.purple { fill: url(#purpleGradient); }
+.stat-area.side1 { fill: var(--side1-color); }
+.stat-area.side2 { fill: var(--side2-color); }
 
 /* Floating EV Panel (right side) */
 .floating-ev {
@@ -778,7 +789,74 @@ body {
     font-size: 22px;
 }
 
-/* Tipping Point Histogram (positioned top-right) */
+/* Win Rate Histogram (horizontal bars) */
+.win-rate-histogram {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    width: 75%;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.win-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.win-bar-track {
+    flex: 1;
+    height: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 5px;
+    overflow: hidden;
+    position: relative;
+}
+/* Improve bar - glowing base layer */
+.win-bar-improve {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0%;
+    border-radius: 5px;
+    transition: width 0.3s ease;
+    opacity: 0.4;
+}
+.win-bar-improve.side1 {
+    background: linear-gradient(90deg, var(--side1-color) 0%, var(--side1-light) 100%);
+    box-shadow: 0 0 12px var(--side1-color), 0 0 20px var(--side1-color);
+}
+.win-bar-improve.side2 {
+    background: linear-gradient(90deg, var(--side2-color) 0%, var(--side2-light) 100%);
+    box-shadow: 0 0 12px var(--side2-color), 0 0 20px var(--side2-color);
+}
+/* Win bar - solid front layer */
+.win-bar {
+    position: absolute;
+    top: 1px;
+    left: 0;
+    height: calc(100% - 2px);
+    width: 0%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+.win-bar.side1 {
+    background: linear-gradient(180deg, var(--side1-light) 0%, var(--side1-color) 50%, var(--side1-dark) 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), 0 0 6px var(--side1-color);
+}
+.win-bar.side2 {
+    background: linear-gradient(180deg, var(--side2-light) 0%, var(--side2-color) 50%, var(--side2-dark) 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), 0 0 6px var(--side2-color);
+}
+.win-label {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.8);
+    min-width: 35px;
+    text-align: right;
+}
+
+/* Tipping Point Histogram (top right) */
 .tipping-histogram {
     position: absolute;
     top: -6px;
@@ -786,7 +864,7 @@ body {
     display: flex;
     align-items: flex-end;
     justify-content: flex-end;
-    height: 140px;
+    height: 100px;
     gap: 2px;
 }
 .tipping-col {

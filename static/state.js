@@ -53,6 +53,15 @@ export let currentTippingPoint = null;
 export let lastTippingPoint = null;
 export let isAlgorithmRunning = false;
 
+// Win rate tracking
+export let side1WinCount = 0;
+export let side2WinCount = 0;
+
+// Margin improvement tracking (when margin moves in your favor)
+export let side1ImproveCount = 0;
+export let side2ImproveCount = 0;
+export let lastMargin = 0; // side1EV - side2EV
+
 
 // Score tracking
 export let currentScore = 0;
@@ -114,6 +123,15 @@ export function setTippingPointCounts(val) { tippingPointCounts = val; }
 export function setCurrentTippingPoint(val) { currentTippingPoint = val; }
 export function setLastTippingPoint(val) { lastTippingPoint = val; }
 export function setIsAlgorithmRunning(val) { isAlgorithmRunning = val; }
+export function setSide1WinCount(val) { side1WinCount = val; }
+export function setSide2WinCount(val) { side2WinCount = val; }
+export function incrementSide1WinCount() { side1WinCount++; }
+export function incrementSide2WinCount() { side2WinCount++; }
+export function setSide1ImproveCount(val) { side1ImproveCount = val; }
+export function setSide2ImproveCount(val) { side2ImproveCount = val; }
+export function incrementSide1ImproveCount() { side1ImproveCount++; }
+export function incrementSide2ImproveCount() { side2ImproveCount++; }
+export function setLastMargin(val) { lastMargin = val; }
 export function setCurrentScore(val) { currentScore = val; }
 export function setSelectedTarget(val) { selectedTarget = val; }
 export function setSelectedMode(val) { selectedMode = val; }

@@ -127,3 +127,87 @@ export function renderLineChart(lineEl, areaEl, history, width = 200, height = 3
     const firstX = ((history[0].iter / maxIter) * width).toFixed(1);
     areaEl.setAttribute('d', linePath + `L${lastX},${height}L${firstX},${height}Z`);
 }
+
+// Segmented line chart - each segment colored by winner
+export function renderSegmentedLineChart(lineGroup, areaGroup, history, width = 200, height = 30, padding = 2) {
+    if (!lineGroup || !areaGroup || history.length < 2) return;
+
+    const values = history.map(d => d.value);
+    const minVal = Math.min(...values);
+    const maxVal = Math.max(...values);
+    const range = maxVal - minVal || 1;
+    const maxIter = history[history.length - 1].iter || history.length;
+
+    // Get colors from CSS
+    const root = document.documentElement;
+    const side1Color = getComputedStyle(root).getPropertyValue('--side1-color').trim() || '#ef4444';
+    const side2Color = getComputedStyle(root).getPropertyValue('--side2-color').trim() || '#3b82f6';
+    const tieColor = '#a855f7';
+
+    const getColor = (winner) => winner === 'side1' ? side1Color : winner === 'side2' ? side2Color : tieColor;
+
+    // Calculate all points
+    const points = history.map((d, i) => ({
+        x: (d.iter / maxIter) * width,
+        y: height - padding - ((d.value - minVal) / range) * (height - padding * 2),
+        winner: d.winner || 'tie'
+    }));
+
+    // Build segments by winner
+    const segments = [];
+    let currentSegment = { winner: points[0].winner, points: [points[0]] };
+
+    for (let i = 1; i < points.length; i++) {
+        if (points[i].winner === currentSegment.winner) {
+            currentSegment.points.push(points[i]);
+        } else {
+            // End current segment at this point (for continuity)
+            currentSegment.points.push(points[i]);
+            segments.push(currentSegment);
+            // Start new segment from this point
+            currentSegment = { winner: points[i].winner, points: [points[i]] };
+        }
+    }
+    segments.push(currentSegment);
+
+    // Clear existing content
+    lineGroup.innerHTML = '';
+    areaGroup.innerHTML = '';
+
+    // Render each segment
+    for (const seg of segments) {
+        if (seg.points.length < 2) continue;
+
+        const color = getColor(seg.winner);
+
+        // Build line path
+        let linePath = '';
+        for (let i = 0; i < seg.points.length; i++) {
+            const p = seg.points[i];
+            linePath += (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1);
+        }
+
+        // Create line path element
+        const lineEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        lineEl.setAttribute('d', linePath);
+        lineEl.setAttribute('fill', 'none');
+        lineEl.setAttribute('stroke', color);
+        lineEl.setAttribute('stroke-width', '1.5');
+        lineEl.setAttribute('stroke-linecap', 'round');
+        lineEl.setAttribute('stroke-linejoin', 'round');
+        lineEl.style.filter = `drop-shadow(0 0 3px ${color}) drop-shadow(0 0 6px ${color})`;
+        lineGroup.appendChild(lineEl);
+
+        // Build area path
+        const firstX = seg.points[0].x.toFixed(1);
+        const lastX = seg.points[seg.points.length - 1].x.toFixed(1);
+        const areaPath = linePath + `L${lastX},${height}L${firstX},${height}Z`;
+
+        // Create area path element
+        const areaEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        areaEl.setAttribute('d', areaPath);
+        areaEl.setAttribute('fill', color);
+        areaEl.setAttribute('opacity', '0.3');
+        areaGroup.appendChild(areaEl);
+    }
+}

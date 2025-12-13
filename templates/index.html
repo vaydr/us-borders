@@ -171,6 +171,22 @@
                         <div class="dash-label">Tipping Point</div>
                         <div class="dash-value" id="tippingState" style="color: #a855f7;">-</div>
                         <div class="dash-subtitle" id="tippingSubtitle">decides the election</div>
+                        <div class="win-rate-histogram" id="winRateHistogram">
+                            <div class="win-bar-row">
+                                <span class="win-label" id="side1WinLabel">0%</span>
+                                <div class="win-bar-track">
+                                    <div class="win-bar-improve side1" id="side1ImproveBar"></div>
+                                    <div class="win-bar side1" id="side1WinBar"></div>
+                                </div>
+                            </div>
+                            <div class="win-bar-row">
+                                <span class="win-label" id="side2WinLabel">0%</span>
+                                <div class="win-bar-track">
+                                    <div class="win-bar-improve side2" id="side2ImproveBar"></div>
+                                    <div class="win-bar side2" id="side2WinBar"></div>
+                                </div>
+                            </div>
+                        </div>
                         <div class="tipping-histogram" id="tippingHistogram"></div>
                     </div>
 
@@ -219,14 +235,8 @@
                         <div class="dash-subtitle"><span id="fairnessScore">0%</span> efficiency</div>
                         <div class="stat-chart">
                             <svg viewBox="0 0 200 30" preserveAspectRatio="none">
-                                <defs>
-                                    <linearGradient id="purpleGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                                        <stop offset="0%" style="stop-color:#a855f7;stop-opacity:0.5" />
-                                        <stop offset="100%" style="stop-color:#a855f7;stop-opacity:0" />
-                                    </linearGradient>
-                                </defs>
-                                <path class="stat-area purple" id="fairnessArea" d=""></path>
-                                <path class="stat-line purple" id="fairnessLine" d=""></path>
+                                <g id="fairnessArea"></g>
+                                <g id="fairnessLine"></g>
                             </svg>
                         </div>
                     </div>

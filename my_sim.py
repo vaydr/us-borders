@@ -69,6 +69,10 @@ class TwoWayAlgorithm:
         self.rejected_moves_heap = []
         self.iterations_since_exchange = 0
 
+        # Win rate tracking for tie mode
+        self.side1_win_count = 0
+        self.side2_win_count = 0
+
         # Load county adjacency data
         self._load_county_adjacency_data()
     
@@ -289,9 +293,42 @@ class TwoWayAlgorithm:
                 temp[state] = 0
         
         total_population = sum(temp.values())
-        if total_population > 0:
-            for state, population in temp.items():
-                self.state_to_ev[state] = int(round(population * 538 / total_population))
+        num_states = len(temp)
+        target_evs = 538
+        min_ev = 2  # Minimum EVs per state
+
+        if total_population > 0 and num_states > 0:
+            # First, give every state the minimum EVs
+            for state in temp:
+                self.state_to_ev[state] = min_ev
+
+            # Calculate remaining EVs to distribute proportionally
+            remaining_evs = target_evs - (num_states * min_ev)
+
+            if remaining_evs > 0:
+                # Calculate raw additional EV allocations based on population
+                raw_additional = {}
+                for state, population in temp.items():
+                    raw_additional[state] = population * remaining_evs / total_population
+
+                # Give each state the floor of their additional allocation
+                for state in raw_additional:
+                    self.state_to_ev[state] += int(raw_additional[state])
+
+                # Calculate how many EVs still need to be distributed
+                allocated = sum(self.state_to_ev.values())
+                still_remaining = target_evs - allocated
+
+                # Distribute remaining EVs to states with largest fractional remainders
+                if still_remaining > 0:
+                    remainders = [(state, raw_additional[state] - int(raw_additional[state])) for state in raw_additional]
+                    remainders.sort(key=lambda x: -x[1])  # Sort by remainder descending
+                    for i in range(still_remaining):
+                        self.state_to_ev[remainders[i][0]] += 1
+        else:
+            # Fallback: distribute evenly if no population data
+            for state in temp:
+                self.state_to_ev[state] = min_ev
     
     def _reward_score(self, lean, tie_mode=False):
         """Compute reward score for a given lean value."""
@@ -352,6 +389,8 @@ class TwoWayAlgorithm:
         self.traversal_visited = set()
         self.rejected_moves_heap = []
         self.iterations_since_exchange = 0
+        self.side1_win_count = 0
+        self.side2_win_count = 0
     
     def _reset_rejected_tracking(self):
         """Reset rejected moves tracking after a successful exchange."""
@@ -412,18 +451,45 @@ class TwoWayAlgorithm:
     def iteration_greedy(self, target=None, mode='standard', alpha=0.01):
         """
         Stochastic hill-climb with different traversal modes.
-        
+
         target: self.side1, self.side2, or 'Tie' (defaults to self.side1)
+                For 'Tie': optimizes for whoever has been winning < 50% of the time
         mode: 'standard', 'follow_the_leader', 'bfs', or 'dfs'
         alpha: probability of selecting from best rejected moves
-        
+
         Returns: (success, heap_used, pivot_county)
         """
         if target is None:
             target = self.side1
-        
+
         self.compute_state_to_partisan_lean()
-        current_score = self.get_configuration_score(target)
+
+        # Track current winner for win rate stats
+        winner, winner_ev, loser_ev = self.compute_election_winner()
+        if winner == self.side1:
+            self.side1_win_count += 1
+        elif winner == self.side2:
+            self.side2_win_count += 1
+
+        # Tie mode: optimize for whoever has been winning LESS often
+        effective_target = target
+        if target == "Tie":
+            total_samples = self.side1_win_count + self.side2_win_count
+            if total_samples == 0:
+                # No data yet - pick randomly
+                effective_target = self.side1 if np.random.random() < 0.5 else self.side2
+            else:
+                side1_win_rate = self.side1_win_count / total_samples
+                # Help whoever has been winning less than half the time
+                if side1_win_rate < 0.5:
+                    effective_target = self.side1
+                elif side1_win_rate > 0.5:
+                    effective_target = self.side2
+                else:
+                    # Exactly 50-50 - pick randomly
+                    effective_target = self.side1 if np.random.random() < 0.5 else self.side2
+
+        current_score = self.get_configuration_score(effective_target)
         
         pivot_county = None
         state_to_grow = None
@@ -510,7 +576,7 @@ class TwoWayAlgorithm:
         # Compute new score
         self.compute_state_to_bordering_counties()
         self.compute_state_to_partisan_lean()
-        new_score = self.get_configuration_score(target)
+        new_score = self.get_configuration_score(effective_target)
         
         # Check population conditions
         pop_ok = self.population_conditions_met()
@@ -540,7 +606,7 @@ class TwoWayAlgorithm:
             self._add_rejected_move(new_score, pivot_county, state_to_grow, from_state)
             
             if np.random.random() < alpha:
-                if self._try_execute_best_reject(target):
+                if self._try_execute_best_reject(effective_target):
                     self._reset_rejected_tracking()
                     return True, True, None
         

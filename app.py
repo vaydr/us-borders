@@ -8,6 +8,7 @@ from flask_cors import CORS
 import threading
 import time
 import json
+import math
 
 # Import TwoWayAlgorithm class
 from my_sim import TwoWayAlgorithm
@@ -204,7 +205,11 @@ def start_algorithm(data):
     """Run simulation - sends only color updates, not images."""
     global is_running, paused_state, stop_event, best_state
 
+    print(f">>> START_ALGORITHM received: {data}")
+    print(f">>> is_running = {is_running}")
+
     if is_running:
+        print(">>> Already running, returning error")
         emit('error', {'message': 'Already running'})
         return
 
@@ -245,8 +250,12 @@ def start_algorithm(data):
         heap_used_this_batch = False
         rejected_counties_batch = set()  # Track rejected counties between updates
 
+        print(f">>> Thread started, running {iterations} iterations")
+
         try:
             for i in range(start_iteration, iterations):
+                if i == 0 or i % 1000 == 0:
+                    print(f">>> Iteration {i}")
                 # Check stop event (thread-safe)
                 if stop_event.is_set():
                     # Save state for resume
@@ -281,6 +290,10 @@ def start_algorithm(data):
                     score = get_current_score(target)
                     current_iter = i + 1
 
+                    # Sanitize score for JSON (handle NaN/Inf)
+                    if not math.isfinite(score):
+                        score = 0.0
+
                     # Track best and save snapshot
                     if score > best_state['score']:
                         best_state = {
@@ -289,11 +302,18 @@ def start_algorithm(data):
                             'snapshot': algorithm.get_state_snapshot()
                         }
 
+                    # Get and sanitize state leans
+                    state_leans = get_state_partisan_leans()
+                    for k, v in state_leans.items():
+                        if not math.isfinite(v):
+                            state_leans[k] = 0.0
+
                     socketio.emit('color_update', {
                         'generation': current_iter,
                         'total': iterations,
                         'colors': get_county_colors(),
-                        'stateLeans': get_state_partisan_leans(),
+                        'stateLeans': state_leans,
+                        'stateEVs': dict(algorithm.state_to_ev),
                         'countyToState': {str(geoid): str(state) for geoid, state in algorithm.county_to_state.items()},
                         'election': get_election_results(),
                         'score': score,
@@ -301,6 +321,9 @@ def start_algorithm(data):
                         'bestIteration': best_state['iteration'],
                         'rejectedCounties': list(rejected_counties_batch)
                     })
+
+                    # Small sleep to let socket buffer flush (prevents WebSocket frame overflow)
+                    time.sleep(0.002)
 
                     # Clear rejected counties for next batch
                     rejected_counties_batch.clear()
@@ -318,11 +341,14 @@ def start_algorithm(data):
         finally:
             is_running = False
 
+    print(f">>> Creating and starting thread")
     thread = threading.Thread(target=run)
     thread.daemon = True
     thread.start()
+    print(f">>> Thread started, emitting algorithm_started")
 
     emit('algorithm_started', {'iterations': iterations, 'target': target, 'resumed': resume})
+    print(f">>> algorithm_started emitted")
 
 
 @socketio.on('stop_algorithm')
@@ -359,9 +385,11 @@ def reset_algorithm():
     algorithm.reset_follow_the_leader()
 
     print("Algorithm reset to initial state")
+    algorithm.compute_state_to_partisan_lean()  # Recalculate EVs
     emit('reset_complete', {
         'colors': get_county_colors(),
         'stateLeans': get_state_partisan_leans(),
+        'stateEVs': dict(algorithm.state_to_ev),
         'countyToState': {str(geoid): str(state) for geoid, state in algorithm.county_to_state.items()},
         'election': get_election_results()
     })
@@ -393,9 +421,11 @@ def restore_best():
     }
 
     print(f"Restored to best state at iteration {best_state['iteration']} with score {best_state['score']:.2f}")
+    algorithm.compute_state_to_partisan_lean()  # Recalculate EVs
     emit('best_restored', {
         'colors': get_county_colors(),
         'stateLeans': get_state_partisan_leans(),
+        'stateEVs': dict(algorithm.state_to_ev),
         'countyToState': {str(geoid): str(state) for geoid, state in algorithm.county_to_state.items()},
         'election': get_election_results(),
         'score': best_state['score'],
@@ -409,7 +439,7 @@ if __name__ == '__main__':
     print("="*60)
 
     from generator import generate_from_real_shifted as g
-    augment = g(shift=0.04)
+    augment = g(shift=0.03)
     algorithm = TwoWayAlgorithm(
         side1="Republican",
         color1="red",
@@ -425,7 +455,9 @@ if __name__ == '__main__':
     # Initialize algorithm
     algorithm.compute_state_to_bordering_counties()
     algorithm.generate_initial_partisan_lean(2020)
+    algorithm.compute_state_to_partisan_lean()  # Calculate EVs based on population
     print(f"Initialized: {len(algorithm.state_to_counties)} states, {len(algorithm.county_to_state)} counties")
+    print(f"Total EVs: {sum(algorithm.state_to_ev.values())} (should be 538)")
 
     # Save initial state for reset functionality
     initial_snapshot = algorithm.get_state_snapshot()

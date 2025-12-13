@@ -1,7 +1,7 @@
 // Dashboard metrics and updates
 
 import * as state from './state.js';
-import { leanToColor, renderLineChart } from './utils.js';
+import { leanToColor, renderLineChart, renderSegmentedLineChart } from './utils.js';
 import { render } from './render.js';
 
 // Setup click handler for restoring best state
@@ -58,6 +58,7 @@ const tippingStateEl = document.getElementById('tippingState');
 const tippingSubtitleEl = document.getElementById('tippingSubtitle');
 const tippingHistogram = document.getElementById('tippingHistogram');
 const tippingCard = document.getElementById('tippingCard');
+
 
 // Calculate dashboard metrics
 export function calculateDashboardMetrics() {
@@ -245,9 +246,76 @@ export function calculateTippingPoint() {
     return null;
 }
 
+// Update win rate histogram (horizontal bars with improvement overlay)
+export function updateWinRateHistogram() {
+    const side1WinBar = document.getElementById('side1WinBar');
+    const side2WinBar = document.getElementById('side2WinBar');
+    const side1ImproveBar = document.getElementById('side1ImproveBar');
+    const side2ImproveBar = document.getElementById('side2ImproveBar');
+    const side1WinLabel = document.getElementById('side1WinLabel');
+    const side2WinLabel = document.getElementById('side2WinLabel');
+
+    const totalWins = state.side1WinCount + state.side2WinCount;
+    const totalImproves = state.side1ImproveCount + state.side2ImproveCount;
+
+    if (totalWins === 0) {
+        if (side1WinBar) side1WinBar.style.width = '0%';
+        if (side2WinBar) side2WinBar.style.width = '0%';
+        if (side1ImproveBar) side1ImproveBar.style.width = '0%';
+        if (side2ImproveBar) side2ImproveBar.style.width = '0%';
+        if (side1WinLabel) side1WinLabel.textContent = '0%';
+        if (side2WinLabel) side2WinLabel.textContent = '0%';
+        return;
+    }
+
+    // Win percentages (of total iterations)
+    const side1WinPct = (state.side1WinCount / totalWins) * 100;
+    const side2WinPct = (state.side2WinCount / totalWins) * 100;
+
+    // Improvement percentages (of total iterations, not just wins)
+    const side1ImprovePct = totalImproves > 0 ? (state.side1ImproveCount / totalImproves) * 100 : 0;
+    const side2ImprovePct = totalImproves > 0 ? (state.side2ImproveCount / totalImproves) * 100 : 0;
+
+    // Update win bars
+    if (side1WinBar) side1WinBar.style.width = side1WinPct + '%';
+    if (side2WinBar) side2WinBar.style.width = side2WinPct + '%';
+
+    // Update improvement bars (glow layer behind)
+    if (side1ImproveBar) side1ImproveBar.style.width = side1ImprovePct + '%';
+    if (side2ImproveBar) side2ImproveBar.style.width = side2ImprovePct + '%';
+
+    // Labels show win %
+    if (side1WinLabel) side1WinLabel.textContent = side1WinPct.toFixed(1) + '%';
+    if (side2WinLabel) side2WinLabel.textContent = side2WinPct.toFixed(1) + '%';
+}
+
 // Update tipping point display
 export function updateTippingPoint() {
     const tipping = calculateTippingPoint();
+
+    // Track wins and margin improvements (only when algorithm is running)
+    if (state.isAlgorithmRunning) {
+        const side1EV = state.election.side1_ev ?? state.election.r_ev ?? 0;
+        const side2EV = state.election.side2_ev ?? state.election.d_ev ?? 0;
+        const currentMargin = side1EV - side2EV;
+
+        // Track wins
+        if (side1EV > side2EV) {
+            state.incrementSide1WinCount();
+        } else if (side2EV > side1EV) {
+            state.incrementSide2WinCount();
+        }
+
+        // Track margin improvements (did the margin move in your favor?)
+        if (currentMargin > state.lastMargin) {
+            state.incrementSide1ImproveCount(); // Margin moved toward side1
+        } else if (currentMargin < state.lastMargin) {
+            state.incrementSide2ImproveCount(); // Margin moved toward side2
+        }
+        state.setLastMargin(currentMargin);
+
+        updateWinRateHistogram();
+    }
 
     if (!tipping) {
         if (tippingStateEl) tippingStateEl.textContent = '-';
@@ -520,8 +588,8 @@ export function updateDashboard() {
         fairnessScoreEl.textContent = sign + metrics.evMarginValue.toFixed(1) + '%';
         fairnessScoreEl.style.color = leanToColor(efficiencySigned * 3);
     }
-    state.pushFairnessHistory({ iter: currentIter, value: Math.abs(metrics.evMarginValue) });
-    renderLineChart(fairnessLine, fairnessArea, state.fairnessHistory);
+    state.pushFairnessHistory({ iter: currentIter, value: Math.abs(metrics.evMarginValue), winner: metrics.evWinner });
+    renderSegmentedLineChart(fairnessLine, fairnessArea, state.fairnessHistory);
 
     // Update histogram
     updateHistogram();
@@ -607,8 +675,8 @@ export function resetDashboard() {
     if (scoreArea) scoreArea.setAttribute('d', '');
     if (swingLine) swingLine.setAttribute('d', '');
     if (swingArea) swingArea.setAttribute('d', '');
-    if (fairnessLine) fairnessLine.setAttribute('d', '');
-    if (fairnessArea) fairnessArea.setAttribute('d', '');
+    if (fairnessLine) fairnessLine.innerHTML = '';
+    if (fairnessArea) fairnessArea.innerHTML = '';
 
     // Reset tipping point tracking
     state.setTippingPointCounts({});
@@ -616,4 +684,12 @@ export function resetDashboard() {
     state.setLastTippingPoint(null);
     state.setIsAlgorithmRunning(false);
     if (tippingHistogram) tippingHistogram.innerHTML = '';
+
+    // Reset win rate and improvement tracking
+    state.setSide1WinCount(0);
+    state.setSide2WinCount(0);
+    state.setSide1ImproveCount(0);
+    state.setSide2ImproveCount(0);
+    state.setLastMargin(0);
+    updateWinRateHistogram();
 }

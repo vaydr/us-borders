@@ -33,6 +33,7 @@ export function buildStateData() {
 }
 
 // Update county counts and populations when state assignments change
+// Note: EVs are now provided by the server (authoritative source)
 export function updateStateCountyCounts() {
     const stateCountyCounts = {};
     const statePopulations = {};
@@ -44,22 +45,6 @@ export function updateStateCountyCounts() {
 
     state.setStateCountyCounts(stateCountyCounts);
     state.setStatePopulations(statePopulations);
-
-    // Recompute EVs based on new populations
-    updateStateEVs();
-}
-
-// Recompute electoral votes based on state populations
-export function updateStateEVs() {
-    const totalPop = Object.values(state.statePopulations).reduce((a, b) => a + b, 0);
-    if (totalPop === 0) return;
-
-    const stateEVs = {};
-    for (const [stateAbbrev, pop] of Object.entries(state.statePopulations)) {
-        stateEVs[stateAbbrev] = Math.round(pop * 538 / totalPop);
-    }
-
-    state.setStateEVs(stateEVs);
 }
 
 // Find which county (and thus state) is under the mouse

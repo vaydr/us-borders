@@ -71,7 +71,7 @@ export function render() {
         if (now && state.rejectedCountyChangeTime[geoid]) {
             const elapsed = now - state.rejectedCountyChangeTime[geoid];
             if (elapsed < state.DIFF_FADE_DURATION) {
-                ctx.fillStyle = `rgba(120, 120, 120, ${1 - elapsed / state.DIFF_FADE_DURATION})`;
+                ctx.fillStyle = `rgba(120, 120, 120, ${0.5*(1 - elapsed / state.DIFF_FADE_DURATION)})`;
                 ctx.fill(path);
             }
         }

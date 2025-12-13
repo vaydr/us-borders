@@ -32,7 +32,10 @@ export function setupSocketHandlers() {
     });
 
     state.socket.on('color_update', (data) => {
-        const { colors, stateLeans, countyToState, election, score, generation, bestScore, bestIteration, rejectedCounties } = data;
+        const { colors, stateLeans, stateEVs, countyToState, election, score, generation, bestScore, bestIteration, rejectedCounties } = data;
+
+        // Use server-provided EVs (authoritative source)
+        if (stateEVs) state.setStateEVs(stateEVs);
 
         // Update colors directly (no copy needed)
         state.setCountyColors(colors);
@@ -129,7 +132,10 @@ export function setupSocketHandlers() {
     });
 
     state.socket.on('reset_complete', (data) => {
-        const { colors, countyToState, stateLeans, election } = data;
+        const { colors, countyToState, stateLeans, stateEVs, election } = data;
+
+        // Use server-provided EVs (authoritative source)
+        if (stateEVs) state.setStateEVs(stateEVs);
 
         state.setCountyColors(colors);
         if (countyToState) {
@@ -159,7 +165,10 @@ export function setupSocketHandlers() {
     });
 
     state.socket.on('best_restored', (data) => {
-        const { colors, countyToState, stateLeans, election, score, iteration } = data;
+        const { colors, countyToState, stateLeans, stateEVs, election, score, iteration } = data;
+
+        // Use server-provided EVs (authoritative source)
+        if (stateEVs) state.setStateEVs(stateEVs);
 
         state.setCountyColors(colors);
         if (countyToState) {
