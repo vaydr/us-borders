@@ -128,15 +128,20 @@ export function renderLineChart(lineEl, areaEl, history, width = 200, height = 3
     areaEl.setAttribute('d', linePath + `L${lastX},${height}L${firstX},${height}Z`);
 }
 
-// Segmented line chart - each segment colored by winner
+// Segmented line chart - each segment colored by sign of value
+// Positive = side1, Negative = side2, Zero = tie
+// Area fills toward zero line (positive fills down, negative fills up)
 export function renderSegmentedLineChart(lineGroup, areaGroup, history, width = 200, height = 30, padding = 2) {
     if (!lineGroup || !areaGroup || history.length < 2) return;
 
     const values = history.map(d => d.value);
-    const minVal = Math.min(...values);
-    const maxVal = Math.max(...values);
+    const minVal = Math.min(...values, 0); // Include 0 in range
+    const maxVal = Math.max(...values, 0); // Include 0 in range
     const range = maxVal - minVal || 1;
     const maxIter = history[history.length - 1].iter || history.length;
+
+    // Calculate zero line Y position
+    const zeroY = height - padding - ((0 - minVal) / range) * (height - padding * 2);
 
     // Get colors from CSS
     const root = document.documentElement;
@@ -144,13 +149,15 @@ export function renderSegmentedLineChart(lineGroup, areaGroup, history, width = 
     const side2Color = getComputedStyle(root).getPropertyValue('--side2-color').trim() || '#3b82f6';
     const tieColor = '#a855f7';
 
+    // Determine winner from sign of value
+    const getWinner = (val) => val > 0 ? 'side1' : val < 0 ? 'side2' : 'tie';
     const getColor = (winner) => winner === 'side1' ? side1Color : winner === 'side2' ? side2Color : tieColor;
 
     // Calculate all points
     const points = history.map((d, i) => ({
         x: (d.iter / maxIter) * width,
         y: height - padding - ((d.value - minVal) / range) * (height - padding * 2),
-        winner: d.winner || 'tie'
+        winner: getWinner(d.value)
     }));
 
     // Build segments by winner
@@ -198,10 +205,11 @@ export function renderSegmentedLineChart(lineGroup, areaGroup, history, width = 
         lineEl.style.filter = `drop-shadow(0 0 3px ${color}) drop-shadow(0 0 6px ${color})`;
         lineGroup.appendChild(lineEl);
 
-        // Build area path
+        // Build area path - fill toward zero line
         const firstX = seg.points[0].x.toFixed(1);
         const lastX = seg.points[seg.points.length - 1].x.toFixed(1);
-        const areaPath = linePath + `L${lastX},${height}L${firstX},${height}Z`;
+        const baseY = zeroY.toFixed(1);
+        const areaPath = linePath + `L${lastX},${baseY}L${firstX},${baseY}Z`;
 
         // Create area path element
         const areaEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');

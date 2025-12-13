@@ -121,6 +121,89 @@ export class StatCarousel {
     }
 }
 
+// CyclingBarPair - Cycles between two layered bars, highlighting one at a time
+// Only switches to a layer if it has a non-zero value
+export class CyclingBarPair {
+    constructor(improveBarId, winBarId, period = 2000) {
+        this.improveBar = document.getElementById(improveBarId);
+        this.winBar = document.getElementById(winBarId);
+        this.period = period;
+        this.intervalId = null;
+        this.currentLayer = 'win'; // Start with win bar active
+        this.improveValue = 0;
+        this.winValue = 0;
+
+        if (this.improveBar && this.winBar) {
+            this.applyActiveState();
+            this.start();
+        }
+    }
+
+    start() {
+        if (this.intervalId) clearInterval(this.intervalId);
+        this.intervalId = setInterval(() => this.cycle(), this.period);
+    }
+
+    stop() {
+        if (this.intervalId) {
+            clearInterval(this.intervalId);
+            this.intervalId = null;
+        }
+    }
+
+    // Update the values (call this when bar widths change)
+    updateValues(improveValue, winValue) {
+        this.improveValue = improveValue;
+        this.winValue = winValue;
+
+        // If current layer became zero, try to switch
+        if (this.currentLayer === 'improve' && this.improveValue === 0 && this.winValue > 0) {
+            this.currentLayer = 'win';
+            this.applyActiveState();
+        } else if (this.currentLayer === 'win' && this.winValue === 0 && this.improveValue > 0) {
+            this.currentLayer = 'improve';
+            this.applyActiveState();
+        }
+    }
+
+    cycle() {
+        // Try to switch to the other layer
+        if (this.currentLayer === 'win') {
+            // Try to switch to improve
+            if (this.improveValue > 0) {
+                this.currentLayer = 'improve';
+            }
+            // else stay on win (or if both are 0, stay on win)
+        } else {
+            // Try to switch to win
+            if (this.winValue > 0) {
+                this.currentLayer = 'win';
+            }
+            // else stay on improve
+        }
+        this.applyActiveState();
+    }
+
+    applyActiveState() {
+        if (!this.improveBar || !this.winBar) return;
+
+        if (this.currentLayer === 'improve') {
+            this.improveBar.classList.add('active');
+            this.winBar.classList.remove('active');
+        } else {
+            this.winBar.classList.add('active');
+            this.improveBar.classList.remove('active');
+        }
+    }
+
+    reset() {
+        this.improveValue = 0;
+        this.winValue = 0;
+        this.currentLayer = 'win';
+        this.applyActiveState();
+    }
+}
+
 // Setup all k-way selectors
 export function setupAllControls() {
     const getColorMode = setupKwaySelector('colorModeKway', (value) => {

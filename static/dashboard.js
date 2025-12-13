@@ -87,8 +87,7 @@ export function calculateDashboardMetrics() {
         }
     }
 
-    // EV Margin: (winner EV %) - (winner popular vote %)
-    // Popular vote is fixed based on county partisan lean * population
+    // Popular vote calculation
     let side2PopVote = 0, side1PopVote = 0;
     for (const [geoid, lean] of Object.entries(state.partisanLean)) {
         const pop = state.population[geoid] || 0;
@@ -103,22 +102,12 @@ export function calculateDashboardMetrics() {
     const side2PopPct = totalPopVote > 0 ? (side2PopVote / totalPopVote) * 100 : 50;
     const side1PopPct = totalPopVote > 0 ? (side1PopVote / totalPopVote) * 100 : 50;
 
-    // EV percentages from election object (side2_ev and side1_ev)
+    // EV from election object
     const side2EV = state.election.side2_ev ?? state.election.d_ev ?? 0;
     const side1EV = state.election.side1_ev ?? state.election.r_ev ?? 0;
-    const totalEV = side2EV + side1EV;
-    const side2EVPct = totalEV > 0 ? (side2EV / totalEV) * 100 : 50;
-    const side1EVPct = totalEV > 0 ? (side1EV / totalEV) * 100 : 50;
 
-    // EV margin = winner's EV% - winner's pop%
-    // Positive means EV overperformance, negative means underperformance
-    const evWinner = side2EV > side1EV ? 'side2' : side1EV > side2EV ? 'side1' : 'tie';
-    let evMarginValue = 0;
-    if (evWinner === 'side2') {
-        evMarginValue = side2EVPct - side2PopPct;
-    } else if (evWinner === 'side1') {
-        evMarginValue = side1EVPct - side1PopPct;
-    }
+    // EV margin = side1 - side2 (simple signed value)
+    const evMarginValue = side1EV - side2EV;
 
     // Popular vote margin
     const popVoteMargin = Math.abs(side2PopPct - side1PopPct);
@@ -128,7 +117,6 @@ export function calculateDashboardMetrics() {
         swingCount,
         swingEVs,
         evMarginValue,
-        evWinner,
         categories: { safeSide2, leanSide2, tossup, leanSide1, safeSide1 },
         stateCount: states.length,
         popVote: {
@@ -265,6 +253,9 @@ export function updateWinRateHistogram() {
         if (side2ImproveBar) side2ImproveBar.style.width = '0%';
         if (side1WinLabel) side1WinLabel.textContent = '0%';
         if (side2WinLabel) side2WinLabel.textContent = '0%';
+        // Reset cycling bar pairs
+        if (state.side1BarPair) state.side1BarPair.updateValues(0, 0);
+        if (state.side2BarPair) state.side2BarPair.updateValues(0, 0);
         return;
     }
 
@@ -283,6 +274,10 @@ export function updateWinRateHistogram() {
     // Update improvement bars (glow layer behind)
     if (side1ImproveBar) side1ImproveBar.style.width = side1ImprovePct + '%';
     if (side2ImproveBar) side2ImproveBar.style.width = side2ImprovePct + '%';
+
+    // Update cycling bar pairs with current values
+    if (state.side1BarPair) state.side1BarPair.updateValues(side1ImprovePct, side1WinPct);
+    if (state.side2BarPair) state.side2BarPair.updateValues(side2ImprovePct, side2WinPct);
 
     // Labels show win %
     if (side1WinLabel) side1WinLabel.textContent = side1WinPct.toFixed(1) + '%';
@@ -384,7 +379,7 @@ export function updateTippingHistogram() {
     const maxCount = sorted[0][1];
 
     tippingHistogram.innerHTML = sorted.map(([stateAbbrev, count]) => {
-        const height = Math.max(5, (count / maxCount) * 100);
+        const height = Math.max(5, (count / maxCount) * 60);
         const lean = state.stateLeans[stateAbbrev] || 0;
         const color = leanToColor(lean * 25);
         const isCurrent = stateAbbrev === state.currentTippingPoint;
@@ -557,19 +552,16 @@ export function updateDashboard() {
         setTimeout(() => swingCard.classList.remove('pulse'), 500);
     }
 
-    // Update EV Margin (winner EV% - loser EV%)
-    const totalEV = state.election.d_ev + state.election.r_ev;
-    const demEVPct = totalEV > 0 ? (state.election.d_ev / totalEV) * 100 : 50;
-    const repEVPct = totalEV > 0 ? (state.election.r_ev / totalEV) * 100 : 50;
-    const evMarginPctValue = Math.abs(demEVPct - repEVPct);
-    // Signed margin: positive = R winning, negative = D winning
-    const evMarginSigned = (repEVPct - demEVPct) / 100;
+    // Update EV Margin (side1 - side2, can be negative)
+    const evMargin = metrics.evMarginValue; // Already side1 - side2
+    const evMarginPct = (evMargin / 538) * 100;
     if (evMarginPctEl) {
-        evMarginPctEl.textContent = evMarginPctValue.toFixed(1) + '%';
-        evMarginPctEl.style.color = leanToColor(evMarginSigned * 3);
+        const sign = evMargin >= 0 ? '+' : '';
+        evMarginPctEl.textContent = sign + evMarginPct.toFixed(1) + '%';
+        evMarginPctEl.style.color = leanToColor(evMarginPct / 100 * 3);
 
-        // Pulse on new whole percent milestone
-        const evMarginInt = Math.floor(evMarginPctValue);
+        // Pulse on new best absolute margin
+        const evMarginInt = Math.floor(Math.abs(evMarginPct));
         if (evMarginInt > state.bestEvMarginInt) {
             state.setBestEvMarginInt(evMarginInt);
             if (fairnessCard) {
@@ -579,16 +571,19 @@ export function updateDashboard() {
         }
     }
 
-    // Update Electoral Efficiency (EV% - PopVote%)
-    // Signed: positive = winner overperforming, need to map to R/D
-    const efficiencySigned = metrics.evWinner === 'rep' ? metrics.evMarginValue / 100 :
-                             metrics.evWinner === 'dem' ? -metrics.evMarginValue / 100 : 0;
+    // Update efficiency subtitle (EV% - PopVote% for whoever is winning)
+    const side1EVPct = (state.election.r_ev / 538) * 100;
+    const side2EVPct = (state.election.d_ev / 538) * 100;
+    const efficiency = evMargin >= 0
+        ? side1EVPct - metrics.popVote.side1Pct
+        : side2EVPct - metrics.popVote.side2Pct;
     if (fairnessScoreEl) {
-        const sign = metrics.evMarginValue >= 0 ? '+' : '';
-        fairnessScoreEl.textContent = sign + metrics.evMarginValue.toFixed(1) + '%';
-        fairnessScoreEl.style.color = leanToColor(efficiencySigned * 3);
+        const sign = efficiency >= 0 ? '+' : '';
+        fairnessScoreEl.textContent = sign + efficiency.toFixed(1) + '%';
+        fairnessScoreEl.style.color = leanToColor(evMarginPct / 100 * 3);
     }
-    state.pushFairnessHistory({ iter: currentIter, value: Math.abs(metrics.evMarginValue), winner: metrics.evWinner });
+    // Push signed value - positive = side1 winning, negative = side2
+    state.pushFairnessHistory({ iter: currentIter, value: evMargin });
     renderSegmentedLineChart(fairnessLine, fairnessArea, state.fairnessHistory);
 
     // Update histogram
@@ -692,4 +687,8 @@ export function resetDashboard() {
     state.setSide2ImproveCount(0);
     state.setLastMargin(0);
     updateWinRateHistogram();
+
+    // Reset cycling bar pairs
+    if (state.side1BarPair) state.side1BarPair.reset();
+    if (state.side2BarPair) state.side2BarPair.reset();
 }

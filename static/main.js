@@ -5,7 +5,7 @@ import { computeBounds, precomputePaths } from './geo.js';
 import { render } from './render.js';
 import { updateDashboard, updateVerticalEVBar, setupScoreRestoreClick } from './dashboard.js';
 import { buildStateData, setupTooltipHandlers } from './tooltip.js';
-import { setupAllControls, StatCarousel } from './controls.js';
+import { setupAllControls, StatCarousel, CyclingBarPair } from './controls.js';
 import { setupSocketHandlers } from './socket.js';
 import { refreshColorCache } from './utils.js';
 
@@ -233,6 +233,10 @@ async function init() {
 
         // Initialize carousels
         state.setEvCarousel(new StatCarousel('evCarousel', 2500));
+
+        // Initialize cycling bar pairs for win rate histogram
+        state.setSide1BarPair(new CyclingBarPair('side1ImproveBar', 'side1WinBar', 1500));
+        state.setSide2BarPair(new CyclingBarPair('side2ImproveBar', 'side2WinBar', 1500));
 
         updateVerticalEVBar();
         updateDashboard();

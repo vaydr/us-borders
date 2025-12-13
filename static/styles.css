@@ -849,6 +849,32 @@ body {
     background: linear-gradient(180deg, var(--side2-light) 0%, var(--side2-color) 50%, var(--side2-dark) 100%);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), 0 0 6px var(--side2-color);
 }
+
+/* Cycling active states - very subtle transitions */
+.win-bar-improve, .win-bar {
+    transition: width 0.3s ease, opacity 0.8s ease, filter 0.8s ease;
+}
+
+/* Inactive state - slightly dimmed */
+.win-bar-improve:not(.active) {
+    opacity: 0.35;
+    filter: saturate(0.9);
+}
+.win-bar:not(.active) {
+    opacity: 0.85;
+    filter: brightness(0.95);
+}
+
+/* Active state - slightly brighter */
+.win-bar-improve.active {
+    opacity: 0.45;
+    filter: saturate(1.05);
+}
+.win-bar.active {
+    opacity: 1;
+    filter: brightness(1.05);
+}
+
 .win-label {
     font-size: 10px;
     color: rgba(255, 255, 255, 0.8);

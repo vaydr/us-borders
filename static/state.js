@@ -73,6 +73,10 @@ export let selectedMode = 'standard';
 // Carousel reference
 export let evCarousel = null;
 
+// Cycling bar pair instances
+export let side1BarPair = null;
+export let side2BarPair = null;
+
 // Side configuration (from server)
 export let sideConfig = {
     side1: 'Republican',
@@ -136,6 +140,8 @@ export function setCurrentScore(val) { currentScore = val; }
 export function setSelectedTarget(val) { selectedTarget = val; }
 export function setSelectedMode(val) { selectedMode = val; }
 export function setEvCarousel(val) { evCarousel = val; }
+export function setSide1BarPair(val) { side1BarPair = val; }
+export function setSide2BarPair(val) { side2BarPair = val; }
 export function setSideConfig(val) { sideConfig = val; }
 
 // Push to arrays
